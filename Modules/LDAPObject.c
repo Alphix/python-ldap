@@ -1507,7 +1507,7 @@ static PyMethodDef methods[] = {
 
 PyTypeObject LDAP_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-        "LDAP",         /*tp_name */
+    "_ldap.LDAP",       /*tp_name */
     sizeof(LDAPObject), /*tp_basicsize */
     0,                  /*tp_itemsize */
     /* methods */
