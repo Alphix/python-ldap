@@ -57,7 +57,7 @@ class VLVRequestControl(RequestControl):
         greater_than_or_equal: str | None = None,
         context_id: str | None = None,
     ):
-        RequestControl.__init__(self,self.controlType,criticality)
+        super().__init__(criticality)
         assert (offset is not None and content_count is not None) or \
                greater_than_or_equal, \
             ValueError(
@@ -121,7 +121,7 @@ class VLVResponseControl(ResponseControl):
     controlType = '2.16.840.1.113730.3.4.10'
 
     def __init__(self, criticality: bool = False) -> None:
-        ResponseControl.__init__(self,self.controlType,criticality)
+        super().__init__(criticality)
 
     def decodeControlValue(self, encoded: bytes) -> None:
         p, rest = decoder.decode(encoded, asn1Spec=VirtualListViewResponseType())

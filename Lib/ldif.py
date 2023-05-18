@@ -494,7 +494,7 @@ class LDIFParser:
     self,
     dn: str,
     modops: LDAPModList,
-    controls: LDAPControls | None = None,
+    controls: List[LDAPControlTupleStr] | None = None,
   ) -> None:
     """
     Process a single LDIF record representing a single modify operation.
@@ -639,7 +639,7 @@ class LDIFRecordList(LDIFParser):
 
     #: List storing parsed records.
     self.all_records: List[Tuple[str, LDAPEntryDict]] = []
-    self.all_modify_changes: List[Tuple[str, LDAPModList, LDAPControls | None]] = []
+    self.all_modify_changes: List[Tuple[str, LDAPModList, List[LDAPControlTupleStr] | None]] = []
 
   def handle(self, dn: str, entry: LDAPEntryDict) -> None:
     """
@@ -651,7 +651,7 @@ class LDIFRecordList(LDIFParser):
     self,
     dn: str,
     modops: LDAPModList,
-    controls: LDAPControls | None = None,
+    controls: List[LDAPControlTupleStr] | None = None,
   ) -> None:
     """
     Process a single LDIF record representing a single modify operation.

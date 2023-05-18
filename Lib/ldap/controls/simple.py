@@ -23,11 +23,9 @@ class ValueLessRequestControl(RequestControl):
   criticality
     criticality request control
   """
+  controlType = ''
 
-  def __init__(
-    self, controlType: str | None = None, criticality: bool = False
-  ) -> None:
-    self.controlType = controlType
+  def __init__(self, criticality: bool = False) -> None:
     self.criticality = criticality
 
   def encodeControlValue(self) -> None:
@@ -41,14 +39,13 @@ class OctetStringInteger(LDAPControl):
   integerValue
     Integer to be sent as OctetString
   """
+  controlType = ''
 
   def __init__(
     self,
-    controlType: str | None = None,
     criticality: bool = False,
     integerValue: int | None = None
   ) -> None:
-    self.controlType = controlType
     self.criticality = criticality
     self.integerValue = integerValue
 
@@ -68,14 +65,13 @@ class BooleanControl(LDAPControl):
   booleanValue
     Boolean (True/False or 1/0) which is the boolean controlValue.
   """
+  controlType = ''
 
   def __init__(
     self,
-    controlType: str | None = None,
     criticality: bool = False,
     booleanValue: bool = False
   ) -> None:
-    self.controlType = controlType
     self.criticality = criticality
     self.booleanValue = booleanValue
 
@@ -91,9 +87,10 @@ class ManageDSAITControl(ValueLessRequestControl):
   """
   Manage DSA IT Control
   """
+  controlType = ldap.CONTROL_MANAGEDSAIT 
 
   def __init__(self, criticality: bool = False) -> None:
-    ValueLessRequestControl.__init__(self,ldap.CONTROL_MANAGEDSAIT,criticality=False)
+    super().__init__(criticality=False)
 
 # FIXME: This is a request control though?
 #KNOWN_RESPONSE_CONTROLS[ldap.CONTROL_MANAGEDSAIT] = ManageDSAITControl
@@ -103,9 +100,10 @@ class RelaxRulesControl(ValueLessRequestControl):
   """
   Relax Rules Control
   """
+  controlType = ldap.CONTROL_RELAX
 
   def __init__(self, criticality: bool = False) -> None:
-    ValueLessRequestControl.__init__(self,ldap.CONTROL_RELAX,criticality=False)
+    super().__init__(criticality=False)
 
 # FIXME: This is a request control though?
 #KNOWN_RESPONSE_CONTROLS[ldap.CONTROL_RELAX] = RelaxRulesControl
@@ -119,9 +117,10 @@ class ProxyAuthzControl(RequestControl):
     string containing the authorization ID indicating the identity
     on behalf which the server should process the request
   """
+  controlType = ldap.CONTROL_PROXY_AUTHZ
 
   def __init__(self, criticality: bool, authzId: str) -> None:
-    RequestControl.__init__(self,ldap.CONTROL_PROXY_AUTHZ,criticality,authzId.encode('utf-8'))
+    super().__init__(criticality, authzId.encode('utf-8'))
 
 
 class AuthorizationIdentityRequestControl(ValueLessRequestControl):
@@ -131,7 +130,7 @@ class AuthorizationIdentityRequestControl(ValueLessRequestControl):
   controlType = '2.16.840.1.113730.3.4.16'
 
   def __init__(self, criticality: bool) -> None:
-    ValueLessRequestControl.__init__(self,self.controlType,criticality)
+    super().__init__(criticality)
 
 
 class AuthorizationIdentityResponseControl(ResponseControl):
@@ -159,4 +158,4 @@ class GetEffectiveRightsControl(RequestControl):
   controlType = '1.3.6.1.4.1.42.2.27.9.5.2'
 
   def __init__(self, criticality: bool, authzId: str) -> None:
-    RequestControl.__init__(self,self.controlType,criticality,authzId.encode('utf-8'))
+    super().__init__(criticality, authzId.encode('utf-8'))

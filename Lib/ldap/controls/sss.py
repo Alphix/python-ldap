@@ -58,7 +58,7 @@ class SSSRequestControl(RequestControl):
         criticality: bool = False,
         ordering_rules: List[str] | str = [],
     ):
-        RequestControl.__init__(self,self.controlType,criticality)
+        super().__init__(criticality)
         self.ordering_rules = ordering_rules
         if isinstance(ordering_rules, str):
             ordering_rules = [ordering_rules]
@@ -117,7 +117,7 @@ class SSSResponseControl(ResponseControl):
     controlType = '1.2.840.113556.1.4.474'
 
     def __init__(self, criticality: bool = False):
-        ResponseControl.__init__(self,self.controlType,criticality)
+        super().__init__(criticality)
 
     def decodeControlValue(self, encoded: bytes) -> None:
         p, rest = decoder.decode(encoded, asn1Spec=SortResultType())

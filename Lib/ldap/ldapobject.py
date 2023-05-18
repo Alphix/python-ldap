@@ -12,9 +12,10 @@ from ldap.pkginfo import __version__, __author__, __license__
 from ldap.controls import RequestControl, ResponseControl
 
 from ldap_types import *
-from typing import Any, BinaryIO, Callable, Dict, List, Sequence, TextIO, Tuple, Type
+from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, List, Sequence, TextIO, Tuple, Type
 from types import TracebackType
-from typing_extensions import Self
+if TYPE_CHECKING:
+  from typing_extensions import Self
 
 __all__ = [
   'LDAPObject',
@@ -1149,7 +1150,7 @@ class SimpleLDAPObject:
     with self._lock(self._l.whoami_s, sctrls, cctrls) as lock:
       result = self._l.whoami_s(sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def get_option(self, option: int) -> Any:
     result = None
