@@ -2,12 +2,9 @@
 
 #include "pythonldap.h"
 
-#define _STR(x)        #x
-#define STR(x) _STR(x)
-
-static char version_str[] = STR(LDAPMODULE_VERSION);
-static char author_str[] = STR(LDAPMODULE_AUTHOR);
-static char license_str[] = STR(LDAPMODULE_LICENSE);
+static const char version_str[] = Py_STRINGIFY(LDAPMODULE_VERSION);
+static const char author_str[] = Py_STRINGIFY(LDAPMODULE_AUTHOR);
+static const char license_str[] = Py_STRINGIFY(LDAPMODULE_LICENSE);
 
 static void
 init_pkginfo(PyObject *m)
@@ -33,7 +30,7 @@ static struct PyModuleDef ldap_moduledef = {
 /* module initialisation */
 
 PyMODINIT_FUNC
-PyInit__ldap()
+PyInit__ldap(void)
 {
     PyObject *m, *d;
 

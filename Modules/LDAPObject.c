@@ -281,7 +281,6 @@ attrs_from_List(PyObject *attrlist, char ***attrsp)
     else {
         PyObject *item = NULL;
         Py_ssize_t i, len, strlen;
-
         const char *str;
 
         seq = PySequence_Fast(attrlist, "expected list of strings or None");
@@ -300,6 +299,7 @@ attrs_from_List(PyObject *attrlist, char ***attrsp)
             item = PySequence_Fast_GET_ITEM(seq, i);
             if (item == NULL)
                 goto error;
+
             if (!PyUnicode_Check(item)) {
                 LDAPerror_TypeError
                     ("attrs_from_List(): expected string in list", item);
@@ -720,16 +720,8 @@ l_ldap_sasl_interactive_bind_s(LDAPObject *self, PyObject *args)
     PyObject *SASLObject = NULL;
     PyObject *mechanism = NULL;
     int msgid;
-
     static unsigned sasl_flags = LDAP_SASL_QUIET;
 
-    /*
-     * In Python 2.3+, a "I" format argument indicates that we're either converting
-     * the Python object into a long or an unsigned int. In versions prior to that,
-     * it will always convert to a long. Since the sasl_flags variable is an
-     * unsigned int, we need to use the "I" flag if we're running Python 2.3+ and a
-     * "i" otherwise.
-     */
     if (!PyArg_ParseTuple
         (args, "sOOOI:sasl_interactive_bind_s", &who, &SASLObject,
          &serverctrls, &clientctrls, &sasl_flags))
@@ -778,7 +770,7 @@ l_ldap_sasl_interactive_bind_s(LDAPObject *self, PyObject *args)
         return LDAPerror(self->ldap);
     return PyLong_FromLong(msgid);
 }
-#endif
+#endif /* HAVE_SASL */
 
 #ifdef LDAP_API_FEATURE_CANCEL
 
@@ -828,7 +820,7 @@ l_ldap_cancel(LDAPObject *self, PyObject *args)
     return PyLong_FromLong(msgid);
 }
 
-#endif
+#endif /* LDAP_API_FEATURE_CANCEL */
 
 /* ldap_compare_ext */
 
@@ -1327,7 +1319,7 @@ l_ldap_start_tls_s(LDAPObject *self, PyObject *args)
     return Py_None;
 }
 
-#endif
+#endif /* HAVE_TLS */
 
 /* ldap_set_option */
 
