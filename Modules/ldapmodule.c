@@ -7,18 +7,9 @@
 
 #include "LDAPObject.h"
 
-#if PY_MAJOR_VERSION >= 3
-PyMODINIT_FUNC PyInit__ldap(void);
-#else
-PyMODINIT_FUNC init_ldap(void);
-#endif
-
-#define _STR(x)        #x
-#define STR(x) _STR(x)
-
-static char version_str[] = STR(LDAPMODULE_VERSION);
-static char author_str[] = STR(LDAPMODULE_AUTHOR);
-static char license_str[] = STR(LDAPMODULE_LICENSE);
+static const char version_str[] = Py_STRINGIFY(LDAPMODULE_VERSION);
+static const char author_str[] = Py_STRINGIFY(LDAPMODULE_AUTHOR);
+static const char license_str[] = Py_STRINGIFY(LDAPMODULE_LICENSE);
 
 static void
 init_pkginfo(PyObject *m)
@@ -33,16 +24,13 @@ static PyMethodDef methods[] = {
     {NULL, NULL}
 };
 
-/* module initialisation */
-
 /* Common initialization code */
-PyObject *
-init_ldap_module(void)
+PyMODINIT_FUNC
+PyInit__ldap(void)
 {
     PyObject *m, *d;
 
     /* Create the module and add the functions */
-#if PY_MAJOR_VERSION >= 3
     static struct PyModuleDef ldap_moduledef = {
         PyModuleDef_HEAD_INIT,
         "_ldap",        /* m_name */
@@ -51,9 +39,7 @@ init_ldap_module(void)
         methods,        /* m_methods */
     };
     m = PyModule_Create(&ldap_moduledef);
-#else
-    m = Py_InitModule("_ldap", methods);
-#endif
+
     /* Initialize LDAP class */
     if (PyType_Ready(&LDAP_Type) < 0) {
         Py_DECREF(m);
@@ -78,17 +64,3 @@ init_ldap_module(void)
 
     return m;
 }
-
-#if PY_MAJOR_VERSION < 3
-PyMODINIT_FUNC
-init_ldap()
-{
-    init_ldap_module();
-}
-#else
-PyMODINIT_FUNC
-PyInit__ldap()
-{
-    return init_ldap_module();
-}
-#endif

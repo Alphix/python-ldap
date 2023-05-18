@@ -276,13 +276,8 @@ attrs_from_List(PyObject *attrlist, char ***attrsp)
 
     if (attrlist == Py_None) {
         /* None means a NULL attrlist */
-#if PY_MAJOR_VERSION == 2
-    }
-    else if (PyBytes_Check(attrlist)) {
-#else
     }
     else if (PyUnicode_Check(attrlist)) {
-#endif
         /* caught by John Benninghoff <johnb@netscape.com> */
         LDAPerror_TypeError
             ("attrs_from_List(): expected *list* of strings, not a string",
@@ -292,12 +287,7 @@ attrs_from_List(PyObject *attrlist, char ***attrsp)
     else {
         PyObject *item = NULL;
         Py_ssize_t i, len, strlen;
-
-#if PY_MAJOR_VERSION >= 3
         const char *str;
-#else
-        char *str;
-#endif
 
         seq = PySequence_Fast(attrlist, "expected list of strings or None");
         if (seq == NULL)
@@ -315,24 +305,14 @@ attrs_from_List(PyObject *attrlist, char ***attrsp)
             item = PySequence_Fast_GET_ITEM(seq, i);
             if (item == NULL)
                 goto error;
-#if PY_MAJOR_VERSION == 2
-            /* Encoded in Python to UTF-8 */
-            if (!PyBytes_Check(item)) {
-                LDAPerror_TypeError
-                    ("attrs_from_List(): expected bytes in list", item);
-                goto error;
-            }
-            if (PyBytes_AsStringAndSize(item, &str, &strlen) == -1) {
-                goto error;
-            }
-#else
+
             if (!PyUnicode_Check(item)) {
                 LDAPerror_TypeError
                     ("attrs_from_List(): expected string in list", item);
                 goto error;
             }
             str = PyUnicode_AsUTF8AndSize(item, &strlen);
-#endif
+
             /* Make a copy. PyBytes_AsString* / PyUnicode_AsUTF8* return
              * internal values that must be treated like const char. Python
              * 3.7 actually returns a const char.
@@ -521,7 +501,7 @@ l_ldap_add_ext(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 /* ldap_simple_bind */
@@ -572,7 +552,7 @@ l_ldap_simple_bind(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 #ifdef HAVE_SASL
@@ -730,7 +710,7 @@ l_ldap_sasl_bind_s(LDAPObject *self, PyObject *args)
     }
     else if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
-    return PyInt_FromLong(ldaperror);
+    return PyLong_FromLong(ldaperror);
 }
 
 static PyObject *
@@ -747,25 +727,11 @@ l_ldap_sasl_interactive_bind_s(LDAPObject *self, PyObject *args)
     PyObject *SASLObject = NULL;
     PyObject *mechanism = NULL;
     int msgid;
-
     static unsigned sasl_flags = LDAP_SASL_QUIET;
 
-    /*
-     * In Python 2.3+, a "I" format argument indicates that we're either converting
-     * the Python object into a long or an unsigned int. In versions prior to that,
-     * it will always convert to a long. Since the sasl_flags variable is an
-     * unsigned int, we need to use the "I" flag if we're running Python 2.3+ and a
-     * "i" otherwise.
-     */
-#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION < 3)
-    if (!PyArg_ParseTuple
-        (args, "sOOOi:sasl_interactive_bind_s", &who, &SASLObject,
-         &serverctrls, &clientctrls, &sasl_flags))
-#else
     if (!PyArg_ParseTuple
         (args, "sOOOI:sasl_interactive_bind_s", &who, &SASLObject,
          &serverctrls, &clientctrls, &sasl_flags))
-#endif
         return NULL;
 
     if (not_valid(self))
@@ -809,9 +775,9 @@ l_ldap_sasl_interactive_bind_s(LDAPObject *self, PyObject *args)
 
     if (msgid != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
-#endif
+#endif /* HAVE_SASL */
 
 #ifdef LDAP_API_FEATURE_CANCEL
 
@@ -858,10 +824,10 @@ l_ldap_cancel(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
-#endif
+#endif /* LDAP_API_FEATURE_CANCEL */
 
 /* ldap_compare_ext */
 
@@ -912,7 +878,7 @@ l_ldap_compare_ext(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 /* ldap_delete_ext */
@@ -958,7 +924,7 @@ l_ldap_delete_ext(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 /* ldap_modify_ext */
@@ -1015,7 +981,7 @@ l_ldap_modify_ext(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 /* ldap_rename */
@@ -1065,7 +1031,7 @@ l_ldap_rename(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 /* ldap_result4 */
@@ -1281,7 +1247,7 @@ l_ldap_search_ext(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 /* ldap_whoami_s (available since OpenLDAP 2.1.13) */
@@ -1360,7 +1326,7 @@ l_ldap_start_tls_s(LDAPObject *self, PyObject *args)
     return Py_None;
 }
 
-#endif
+#endif /* HAVE_TLS */
 
 /* ldap_set_option */
 
@@ -1451,7 +1417,7 @@ l_ldap_passwd(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 /* ldap_extended_operation */
@@ -1502,7 +1468,7 @@ l_ldap_extended_operation(LDAPObject *self, PyObject *args)
     if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
 
-    return PyInt_FromLong(msgid);
+    return PyLong_FromLong(msgid);
 }
 
 /* methods */
