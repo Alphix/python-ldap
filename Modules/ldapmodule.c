@@ -28,6 +28,28 @@ static struct PyModuleDef ldap_moduledef = {
 };
 
 /* module initialisation */
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 9
+static int
+PyModule_AddType(PyObject *module, PyTypeObject *type)
+{
+    const char *name;
+
+    if (PyType_Ready(type) < 0) {
+        return -1;
+    }
+
+    name = _PyType_Name(type);
+    assert(name != NULL);
+
+    Py_INCREF(type);
+    if (PyModule_AddObject(module, name, (PyObject *)type) < 0) {
+        Py_DECREF(type);
+        return -1;
+    }
+
+    return 0;
+}
+#endif
 
 PyMODINIT_FUNC
 PyInit__ldap(void)
@@ -38,7 +60,7 @@ PyInit__ldap(void)
     m = PyModule_Create(&ldap_moduledef);
 
     /* Initialize LDAP class */
-    if (PyType_Ready(&LDAP_Type) < 0) {
+    if (PyModule_AddType(m, &LDAP_Type) < 0) {
         Py_DECREF(m);
         return NULL;
     }
