@@ -1,5 +1,5 @@
 """
-ldapobject.py - wraps class ldap._ldap.LDAPObject
+ldapobject.py - wraps class ldap._ldap.LDAP
 
 See https://www.python-ldap.org/ for details.
 """
@@ -23,6 +23,8 @@ from typing import (
     Optional,
     Union,
 )
+from types import TracebackType
+from typing_extensions import Self
 
 __all__ = [
   'LDAPObject',
@@ -66,6 +68,116 @@ class NO_UNIQUE_ENTRY(ldap.NO_SUCH_OBJECT):
   """
 
 
+class CallLock():
+    """
+    Wrapper class mainly for serializing calls into OpenLDAP libs
+    and trace log output.
+
+    In order for trace logging to work properly, the CallLock should
+    be used like this:
+
+    ```
+    with lock_object(some_function, arg1, arg2) as lock:
+        result = some_function(arg1, arg2)
+        lock.result = result
+        <do something with result>
+    ```
+    """
+
+    def __init__(
+        self,
+        parent: "SimpleLDAPObject",
+        uri: str,
+        trace_level: int,
+        trace_file: Optional[TextIO],
+        trace_stack_limit: int,
+    ) -> None:
+        self._parent = parent
+        self._uri = uri
+        self._trace_level = trace_level
+        self._trace_file = trace_file
+        self._trace_stack_limit = trace_stack_limit
+        self._func_name = '<unknown>'
+        self._func_args = None
+        self._func_kwargs = None
+        self.result: Optional[Any] = None
+
+        if ldap.LIBLDAP_R:
+            self._lock = ldap.LDAPLock(desc=f'opcall within {repr(parent)}')
+        else:
+            self._lock = ldap._ldap_module_lock
+
+    def __call__(
+        self,
+        func: Callable[..., Any],
+        *func_args: Any,
+        **func_kwargs: Any
+    ) -> Self:
+        self._func_name = func.__name__
+        self._func_args = func_args
+        self._func_kwargs = func_kwargs
+        self.result = None
+        return self
+
+    def __enter__(self) -> Self:
+        assert self._func_name is not None
+
+        self._lock.acquire()
+
+        if __debug__ and self._trace_level >=1 and self._trace_file is not None:
+            call = '.'.join((self._parent.__class__.__name__, self._func_name))
+            self._trace_file.write((
+                f'*** {repr(self._parent)} {self._uri} - {call}\n'
+                f'{pprint.pformat((self._func_args, self._func_kwargs))}\n'
+            ))
+
+        if __debug__ and self._trace_level >= 9:
+            traceback.print_stack(
+                limit=self._trace_stack_limit,
+                file=self._trace_file
+            )
+
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        if exc is None and __debug__ and self._trace_level >= 2 and self._trace_file is not None:
+            if self._func_name != "unbind_ext":
+                msg = self._parent._l.get_option(ldap.OPT_DIAGNOSTIC_MESSAGE)
+                self._trace_file.write(f'=> diagnosticMessage: {repr(msg)}')
+
+            self._trace_file.write((
+                f'=> result:\n'
+                f'{pprint.pformat(self.result)}\n'
+            ))
+
+        elif isinstance(exc, LDAPError):
+            try:
+                if 'info' not in exc.args[0] and 'errno' in exc.args[0]:
+                    exc.args[0]['info'] = strerror(exc.args[0]['errno'])
+            except IndexError:
+                pass
+
+            if __debug__ and self._trace_level >= 2 and self._trace_file is not None:
+                self._trace_file.write((
+                    '=> LDAPError - '
+                    f'{exc.__class__.__name__}: {str(exc)}\n'
+                ))
+
+        self._func_name = '<unknown>'
+        self._func_args = None
+        self._func_kwargs = None
+        self.result = None
+        self._lock.release()
+
+        # Propagate any exceptions
+        return None
+
+
 class SimpleLDAPObject:
   """
   This basic class wraps all methods of the underlying C API object.
@@ -99,17 +211,30 @@ class SimpleLDAPObject:
     self._trace_file = trace_file or ldap._trace_file
     self._trace_stack_limit = trace_stack_limit
     self._uri = uri
-    self._ldap_object_lock = self._ldap_lock('opcall')
+    self._lock = CallLock(
+        self,
+        self._uri,
+        self._trace_level,
+        self._trace_file,
+        self._trace_stack_limit
+    )
+
     if fileno is not None:
       if not hasattr(_ldap, "initialize_fd"):
         raise ValueError("libldap does not support initialize_fd")
+
       if hasattr(fileno, "fileno"):
         fileno = fileno.fileno()
-      self._l = ldap.functions._ldap_function_call(
-        ldap._ldap_module_lock, _ldap.initialize_fd, fileno, uri
-      )
+
+      with self._lock(_ldap.initialize_fd, fileno, uri) as lock:
+        self._l: _ldap.LDAP = _ldap.initialize_fd(fileno, uri)
+        lock.result = self._l
+
     else:
-      self._l = ldap.functions._ldap_function_call(ldap._ldap_module_lock,_ldap.initialize,uri)
+      with self._lock(_ldap.initialize, uri) as lock:
+        self._l = _ldap.initialize(uri)
+        lock.result = self._l
+
     self.timeout = -1
     self.protocol_version = ldap.VERSION3
 
@@ -123,53 +248,6 @@ class SimpleLDAPObject:
   @property
   def bytes_strictness(self) -> str:
     return 'error'
-
-  def _ldap_lock(self, desc: str = '') -> ldap.LDAPLock:
-    if ldap.LIBLDAP_R:
-      return ldap.LDAPLock(desc='%s within %s' %(desc,repr(self)))
-    else:
-      return ldap._ldap_module_lock
-
-  def _ldap_call(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-    """
-    Wrapper method mainly for serializing calls into OpenLDAP libs
-    and trace logs
-    """
-    self._ldap_object_lock.acquire()
-    if __debug__:
-      if self._trace_level>=1:
-        self._trace_file.write('*** {} {} - {}\n{}\n'.format(
-          repr(self),
-          self._uri,
-          '.'.join((self.__class__.__name__,func.__name__)),
-          pprint.pformat((args,kwargs))
-        ))
-        if self._trace_level>=9:
-          traceback.print_stack(limit=self._trace_stack_limit,file=self._trace_file)
-    diagnostic_message_success = None
-    try:
-      try:
-        result = func(*args,**kwargs)
-        if __debug__ and self._trace_level>=2:
-          if func.__name__!="unbind_ext":
-            diagnostic_message_success = self._l.get_option(ldap.OPT_DIAGNOSTIC_MESSAGE)
-      finally:
-        self._ldap_object_lock.release()
-    except LDAPError as e:
-      try:
-        if 'info' not in e.args[0] and 'errno' in e.args[0]:
-          e.args[0]['info'] = strerror(e.args[0]['errno'])
-      except IndexError:
-        pass
-      if __debug__ and self._trace_level>=2:
-        self._trace_file.write('=> LDAPError - {}: {}\n'.format(e.__class__.__name__,str(e)))
-      raise
-    else:
-      if __debug__ and self._trace_level>=2:
-        if not diagnostic_message_success is None:
-          self._trace_file.write('=> diagnosticMessage: %s\n' % (repr(diagnostic_message_success)))
-        self._trace_file.write('=> result:\n%s\n' % (pprint.pformat(result)))
-    return result
 
   def __setattr__(self, name: str, value: Any) -> None:
     if name in self.CLASSATTR_OPTION_MAPPING:
@@ -214,7 +292,10 @@ class SimpleLDAPObject:
         can expect that the result of an abandoned operation will not be
         returned from a future call to result().
     """
-    self._ldap_call(self._l.abandon_ext,msgid,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.abandon_ext, msgid, sctrls, cctrls) as lock:
+      lock.result = self._l.abandon_ext(msgid, sctrls, cctrls)
 
   def abandon(self, msgid: int) -> None:
     return self.abandon_ext(msgid,None,None)
@@ -235,7 +316,12 @@ class SimpleLDAPObject:
         In opposite to abandon() this extended operation gets an result from
         the server and thus should be preferred if the server supports it.
     """
-    return self._ldap_call(self._l.cancel,cancelid,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.cancel, cancelid, sctrls, cctrls) as lock:
+      result = self._l.cancel(cancelid, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def cancel_s(
     self,
@@ -264,7 +350,12 @@ class SimpleLDAPObject:
         The parameter modlist is similar to the one passed to modify(),
         except that no operation integer need be included in the tuples.
     """
-    return self._ldap_call(self._l.add_ext,dn,modlist,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.add_ext, dn, modlist, sctrls, cctrls) as lock:
+      result = self._l.add_ext(dn, modlist, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def add_ext_s(
     self,
@@ -309,7 +400,12 @@ class SimpleLDAPObject:
     """
     simple_bind([who=''[,cred=''[,serverctrls=None[,clientctrls=None]]]]) -> int
     """
-    return self._ldap_call(self._l.simple_bind,who,cred,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.simple_bind, who, cred, sctrls, cctrls) as lock:
+      result = self._l.simple_bind(who, cred, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def simple_bind_s(
     self,
@@ -361,7 +457,11 @@ class SimpleLDAPObject:
     """
     sasl_interactive_bind_s(who, auth [,serverctrls=None[,clientctrls=None[,sasl_flags=ldap.SASL_QUIET]]]) -> None
     """
-    return self._ldap_call(self._l.sasl_interactive_bind_s,who,auth,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls),sasl_flags)  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.sasl_interactive_bind_s, who, auth, sctrls, cctrls, sasl_flags) as lock:
+      result = self._l.sasl_interactive_bind_s(who, auth, sctrls, cctrls, sasl_flags)
+      lock.result = result
 
   def sasl_non_interactive_bind_s(
     self,
@@ -411,11 +511,19 @@ class SimpleLDAPObject:
     cred: str,
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-  ) -> Union[int, str]:
+  ) -> Union[int, bytes]:
     """
-    sasl_bind_s(dn, mechanism, cred [,serverctrls=None[,clientctrls=None]]) -> int|str
+    sasl_bind_s(dn, mechanism, cred [,serverctrls=None[,clientctrls=None]]) -> int | bytes
     """
-    return self._ldap_call(self._l.sasl_bind_s,dn,mechanism,cred,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    # FIXME: sasl_bind_s returns zero on success, raises an exception, or
+    #        returns bytes (server credentials). We should probably filter
+    #        out the (useless) int and only return bytes | None.
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.sasl_bind_s, dn, mechanism, cred, sctrls, cctrls) as lock:
+      result = self._l.sasl_bind_s(dn, mechanism, cred, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def compare_ext(
     self,
@@ -442,7 +550,12 @@ class SimpleLDAPObject:
         A design bug in the library prevents value from containing
         nul characters.
     """
-    return self._ldap_call(self._l.compare_ext,dn,attr,value,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.compare_ext, dn, attr, value, sctrls, cctrls) as lock:
+      result = self._l.compare_ext(dn, attr, value, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def compare_ext_s(
     self,
@@ -494,7 +607,12 @@ class SimpleLDAPObject:
         form returns the message id of the initiated request, and the
         result can be obtained from a subsequent call to result().
     """
-    return self._ldap_call(self._l.delete_ext,dn,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.delete_ext, dn, sctrls, cctrls) as lock:
+      result = self._l.delete_ext(dn, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def delete_ext_s(
     self,
@@ -531,7 +649,14 @@ class SimpleLDAPObject:
         ldap.extop.ExtendedResponse this class is used to return an
         object of this class instead of a raw BER value in respvalue.
     """
-    return self._ldap_call(self._l.extop,extreq.requestName,extreq.encodedRequestValue(),RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    reqname = extreq.requestName
+    reqvalue = extreq.encodedRequestValue()
+    with self._lock(self._l.extop, reqname, reqvalue, sctrls, cctrls) as lock:
+      result = self._l.extop(reqname, reqvalue, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def extop_result(
     self,
@@ -570,7 +695,12 @@ class SimpleLDAPObject:
     """
     modify_ext(dn, modlist[,serverctrls=None[,clientctrls=None]]) -> int
     """
-    return self._ldap_call(self._l.modify_ext,dn,modlist,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.modify_ext, dn, modlist, sctrls, cctrls) as lock:
+      result = self._l.modify_ext(dn, modlist, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def modify_ext_s(
     self,
@@ -654,7 +784,12 @@ class SimpleLDAPObject:
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
   ) -> int:
-    return self._ldap_call(self._l.passwd,user,oldpw,newpw,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.passwd, user, oldpw, newpw, sctrls, cctrls) as lock:
+      result = self._l.passwd(user, oldpw, newpw, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def passwd_s(
     self,
@@ -699,7 +834,12 @@ class SimpleLDAPObject:
         This actually corresponds to the rename* routines in the
         LDAP-EXT C API library.
     """
-    return self._ldap_call(self._l.rename,dn,newrdn,newsuperior,delold,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.rename, dn, newrdn, newsuperior, delold, sctrls, cctrls) as lock:
+      result = self._l.rename(dn, newrdn, newsuperior, delold, sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def rename_s(
     self,
@@ -807,7 +947,12 @@ class SimpleLDAPObject:
   ) -> Tuple[Optional[int], Optional[Any], Optional[int], Optional[List[ResponseControl]], Optional[Any], Optional[Any]]:
     if timeout is None:
       timeout = self.timeout
-    ldap_result = self._ldap_call(self._l.result4,msgid,all,timeout,add_ctrls,add_intermediates,add_extop)
+
+    ldap_result = None
+    with self._lock(self._l.result4, msgid,all,timeout,add_ctrls,add_intermediates,add_extop) as lock:
+      ldap_result = self._l.result4(msgid, all, timeout, add_ctrls, add_intermediates, add_extop)
+      lock.result = ldap_result
+
     if ldap_result is None:
         resp_type, resp_data, resp_msgid, resp_ctrls, resp_name, resp_value = (None,None,None,None,None,None)
     else:
@@ -879,14 +1024,18 @@ class SimpleLDAPObject:
     """
     if filterstr is None:
       filterstr = '(objectClass=*)'
-    return self._ldap_call(  # type: ignore
-      self._l.search_ext,
-      base,scope,filterstr,
-      attrlist,attrsonly,
-      RequestControlTuples(serverctrls),
-      RequestControlTuples(clientctrls),
-      timeout,sizelimit,
-    )
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(
+      self._l.search_ext, base, scope, filterstr, attrlist, attrsonly,
+      sctrls, cctrls, timeout, sizelimit
+    ) as lock:
+      result = self._l.search_ext(
+        base, scope, filterstr, attrlist, attrsonly,
+        sctrls, cctrls, timeout, sizelimit
+      )
+      lock.result = result
+      return result  # type: ignore
 
   def search_ext_s(
     self,
@@ -941,7 +1090,9 @@ class SimpleLDAPObject:
     set to VERSION3 before calling start_tls_s.
     If TLS could not be started an exception will be raised.
     """
-    self._ldap_call(self._l.start_tls_s)
+    with self._lock(self._l.start_tls_s) as lock:
+      result = self._l.start_tls_s()
+      lock.result = result
 
   def unbind_ext(
     self,
@@ -962,12 +1113,20 @@ class SimpleLDAPObject:
         The unbind and unbind_s methods are identical, and are
         synchronous in nature
     """
-    res = self._ldap_call(self._l.unbind_ext,RequestControlTuples(serverctrls),RequestControlTuples(clientctrls))
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    result = None
+    with self._lock(self._l.unbind_ext, sctrls, cctrls) as lock:
+      result = self._l.unbind_ext(sctrls, cctrls)
+      lock.result = result
+
+    # FIXME: the client will presumably call self._l to get the
+    #        result for msgid...?
     try:
       del self._l
     except AttributeError:
       pass
-    return res  # type: ignore
+    return result  # type: ignore
 
   def unbind_ext_s(
     self,
@@ -996,18 +1155,32 @@ class SimpleLDAPObject:
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
   ) -> str:
-    return self._ldap_call(self._l.whoami_s,serverctrls,clientctrls)  # type: ignore
+    sctrls = RequestControlTuples(serverctrls)
+    cctrls = RequestControlTuples(clientctrls)
+    with self._lock(self._l.whoami_s, sctrls, cctrls) as lock:
+      result = self._l.whoami_s(sctrls, cctrls)
+      lock.result = result
+      return result  # type: ignore
 
   def get_option(self, option: int) -> Any:
-    result = self._ldap_call(self._l.get_option,option)
+    result = None
+    with self._lock(self._l.get_option, option) as lock:
+      result = self._l.get_option(option)
+      lock.result = result
+
     if option==ldap.OPT_SERVER_CONTROLS or option==ldap.OPT_CLIENT_CONTROLS:
-      result = DecodeControlTuples(result)
-    return result
+      return DecodeControlTuples(result)
+    else:
+      return result
 
   def set_option(self, option: int, invalue: Any) -> Any:
     if option==ldap.OPT_SERVER_CONTROLS or option==ldap.OPT_CLIENT_CONTROLS:
       invalue = RequestControlTuples(invalue)
-    return self._ldap_call(self._l.set_option,option,invalue)
+
+    with self._lock(self._l.set_option, option, invalue) as lock:
+      result = self._l.set_option(option, invalue)
+      lock.result = result
+      return result
 
   def search_subschemasubentry_s(
     self,
@@ -1182,7 +1355,7 @@ class ReconnectLDAPObject(SimpleLDAPObject):
 
   __transient_attrs__ = {
     '_l',
-    '_ldap_object_lock',
+    '_lock',
     '_trace_file',
     '_reconnect_lock',
     '_last_bind',
@@ -1245,10 +1418,16 @@ class ReconnectLDAPObject(SimpleLDAPObject):
     self.__dict__.update(d)
     if self._last_bind is not None and isinstance(self._last_bind[0], str):
         self._last_bind = getattr(SimpleLDAPObject, self._last_bind[0]), self._last_bind[1], self._last_bind[2]
-    self._ldap_object_lock = self._ldap_lock()
     self._reconnect_lock = ldap.LDAPLock(desc='reconnect lock within %s' % (repr(self)))
     # XXX cannot pickle file, use default trace file
     self._trace_file = ldap._trace_file
+    self._lock = CallLock(
+        self,
+        self._uri,
+        self._trace_level,
+        self._trace_file,
+        self._trace_stack_limit
+    )
     self.reconnect(self._uri,force=True)
 
   def _store_last_bind(
