@@ -1091,8 +1091,8 @@ class SimpleLDAPObject:
     If TLS could not be started an exception will be raised.
     """
     with self._lock(self._l.start_tls_s) as lock:
-      result = self._l.start_tls_s()
-      lock.result = result
+      self._l.start_tls_s()
+      lock.result = None
 
   def unbind_ext(
     self,
