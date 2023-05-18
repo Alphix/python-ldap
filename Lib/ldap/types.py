@@ -23,9 +23,9 @@ __all__ = [
     'LDAPModifyModList',
     'LDAPModList',
     'LDAPEntryDict',
-    'LDAPControl',
-    'LDAPControls',
     'LDAPSearchResult',
+    'LDAPControlTuple',
+    'LDAPControlTupleStr',
 ]
 
 LDAPModListAddEntry: TypeAlias = "Tuple[str, List[bytes]]"
@@ -49,11 +49,11 @@ LDAPModList: TypeAlias = "Sequence[LDAPModListEntry]"
 LDAPEntryDict: TypeAlias = "MutableMapping[str, List[bytes]]"
 """The type used to store attribute-value mappings for a given LDAP entry (attribute name, list of binary values)."""
 
-LDAPControl: TypeAlias = "Tuple[str, str, Optional[str]]"
-"""The type used to store controls (type, criticality, value)."""
-
-LDAPControls: TypeAlias = "List[LDAPControl]"
-"""The type used to store control lists."""
-
 LDAPSearchResult: TypeAlias = "Tuple[str, LDAPEntryDict]"
 """The type of a search result, a tuple with a DN string and a dict of attributes."""
+
+LDAPControlTuple: TypeAlias = "Tuple[str, bool, Optional[bytes]]"
+"""The type used to represent a request/response control (type, criticality, value)."""
+
+LDAPControlTupleStr: TypeAlias = "Tuple[str, str, Optional[str]]"
+"""The type used to represent a request/response control in str form (type, criticality, value)."""

@@ -28,7 +28,7 @@ from urllib.request import urlopen
 from ldap.types import (
     LDAPEntryDict,
     LDAPModList,
-    LDAPControls,
+    LDAPControlTupleStr,
     LDAPModListModifyEntry,
     LDAPModListAddEntry,
 )
@@ -500,7 +500,7 @@ class LDIFParser:
     self,
     dn: str,
     modops: LDAPModList,
-    controls: Optional[LDAPControls] = None,
+    controls: Optional[List[LDAPControlTupleStr]] = None,
   ) -> None:
     """
     Process a single LDIF record representing a single modify operation.
@@ -645,7 +645,7 @@ class LDIFRecordList(LDIFParser):
 
     #: List storing parsed records.
     self.all_records: List[Tuple[str, LDAPEntryDict]] = []
-    self.all_modify_changes: List[Tuple[str, LDAPModList, Optional[LDAPControls]]] = []
+    self.all_modify_changes: List[Tuple[str, LDAPModList, Optional[List[LDAPControlTupleStr]]]] = []
 
   def handle(self, dn: str, entry: LDAPEntryDict) -> None:
     """
@@ -657,7 +657,7 @@ class LDIFRecordList(LDIFParser):
     self,
     dn: str,
     modops: LDAPModList,
-    controls: Optional[LDAPControls] = None,
+    controls: Optional[List[LDAPControlTupleStr]] = None,
   ) -> None:
     """
     Process a single LDIF record representing a single modify operation.

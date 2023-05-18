@@ -19,6 +19,7 @@ import ldap
 from pyasn1.error import PyAsn1Error
 
 from typing import Dict, List, Tuple, Type, Optional
+from ldap.types import LDAPControlTuple
 
 
 __all__ = [
@@ -55,14 +56,13 @@ class RequestControl:
       control value of the LDAPv3 extended request control
       (here it is the BER-encoded ASN.1 control value)
   """
+  controlType = ''
 
   def __init__(
     self,
-    controlType: Optional[str] = None,
     criticality: bool = False,
     encodedControlValue: Optional[bytes] = None
   ) -> None:
-    self.controlType = controlType
     self.criticality = criticality
     self.encodedControlValue = encodedControlValue
 
@@ -83,13 +83,12 @@ class ResponseControl:
   criticality
       sets the criticality of the received control (boolean)
   """
+  controlType = ''
 
   def __init__(
     self,
-    controlType: Optional[str] = None,
     criticality: bool = False
   ) -> None:
-    self.controlType = controlType
     self.criticality = criticality
 
   def decodeControlValue(self, encodedControlValue: bytes) -> None:
@@ -106,15 +105,14 @@ class LDAPControl(RequestControl, ResponseControl):
   Base class for combined request/response controls mainly
   for backward-compatibility to python-ldap 2.3.x
   """
+  controlType = ''
 
   def __init__(
     self,
-    controlType: Optional[str] = None,
     criticality: bool = False,
     controlValue: Optional[str] = None,
     encodedControlValue: Optional[bytes] = None
   ) -> None:
-    self.controlType = controlType
     self.criticality = criticality
     self.controlValue = controlValue
     self.encodedControlValue = encodedControlValue
@@ -122,7 +120,7 @@ class LDAPControl(RequestControl, ResponseControl):
 
 def RequestControlTuples(
     ldapControls: Optional[List[RequestControl]]
-  ) -> Optional[List[Tuple[Optional[str], bool, Optional[bytes]]]]:
+  ) -> Optional[List[LDAPControlTuple]]:
   """
   Return list of readily encoded 3-tuples which can be directly
   passed to C module _ldap

@@ -1160,7 +1160,7 @@ class SimpleLDAPObject:
     with self._lock(self._l.whoami_s, sctrls, cctrls) as lock:
       result = self._l.whoami_s(sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def get_option(self, option: int) -> Any:
     result = None

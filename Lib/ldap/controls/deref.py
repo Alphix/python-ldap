@@ -86,7 +86,7 @@ class DereferenceControl(LDAPControl):
     criticality: bool = False,
     derefSpecs: Optional[Dict[str, List[str]]] = None,
   ) -> None:
-    LDAPControl.__init__(self,self.controlType,criticality)
+    super().__init__(criticality)
     self.derefSpecs = derefSpecs or {}
 
   def _derefSpecs(self) -> DerefSpecs:
