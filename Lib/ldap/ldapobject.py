@@ -398,14 +398,14 @@ class SimpleLDAPObject:
     clientctrls: Optional[List[RequestControl]] = None,
   ) -> int:
     """
-    simple_bind([who=''[,cred=''[,serverctrls=None[,clientctrls=None]]]]) -> int
+    simple_bind([who=None[,cred=None[,serverctrls=None[,clientctrls=None]]]]) -> int
     """
     sctrls = RequestControlTuples(serverctrls)
     cctrls = RequestControlTuples(clientctrls)
     with self._lock(self._l.simple_bind, who, cred, sctrls, cctrls) as lock:
       result = self._l.simple_bind(who, cred, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def simple_bind_s(
     self,
@@ -416,7 +416,7 @@ class SimpleLDAPObject:
   ) -> Tuple[Any, Any, Any, Any]:
     # FIXME: The return value could be more specific
     """
-    simple_bind_s([who=''[,cred=''[,serverctrls=None[,clientctrls=None]]]]) -> 4-tuple
+    simple_bind_s([who=None[,cred=None[,serverctrls=None[,clientctrls=None]]]]) -> 4-tuple
     """
     msgid = self.simple_bind(who,cred,serverctrls,clientctrls)
     resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid,all=1,timeout=self.timeout)
