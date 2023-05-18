@@ -1098,11 +1098,11 @@ class SimpleLDAPObject:
     self,
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-  ) -> int:
+  ) -> None:
     """
-    unbind() -> int
+    unbind() -> None
     unbind_s() -> None
-    unbind_ext() -> int
+    unbind_ext() -> None
     unbind_ext_s() -> None
         This call is used to unbind from the directory, terminate
         the current association, and free resources. Once called, the
@@ -1110,45 +1110,38 @@ class SimpleLDAPObject:
         is invalid. Further invocation of methods on the object will
         yield an exception.
 
-        The unbind and unbind_s methods are identical, and are
-        synchronous in nature
+        All the unbind methods methods are identical, and are synchronous
+        in nature.
     """
     sctrls = RequestControlTuples(serverctrls)
     cctrls = RequestControlTuples(clientctrls)
-    result = None
     with self._lock(self._l.unbind_ext, sctrls, cctrls) as lock:
-      result = self._l.unbind_ext(sctrls, cctrls)
-      lock.result = result
+      self._l.unbind_ext(sctrls, cctrls)
+      lock.result = None
 
-    # FIXME: the client will presumably call self._l to get the
-    #        result for msgid...?
     try:
       del self._l
     except AttributeError:
       pass
-    return result  # type: ignore
 
-  def unbind_ext_s(
-    self,
-    serverctrls: Optional[List[RequestControl]] = None,
-    clientctrls: Optional[List[RequestControl]] = None,
-  ) -> None:
-    msgid = self.unbind_ext(serverctrls,clientctrls)
-    if msgid!=None:
-      result = self.result3(msgid,all=1,timeout=self.timeout)
-    else:
-      result = None
     if __debug__ and self._trace_level>=1:
       try:
         self._trace_file.flush()
       except AttributeError:
         pass
 
-  def unbind(self) -> int:
-    return self.unbind_ext(None,None)
+  def unbind_ext_s(
+    self,
+    serverctrls: Optional[List[RequestControl]] = None,
+    clientctrls: Optional[List[RequestControl]] = None,
+  ) -> None:
+    self.unbind_ext(serverctrls, clientctrls)
+
+  def unbind(self) -> None:
+    self.unbind_ext(None, None)
 
   def unbind_s(self) -> None:
-    return self.unbind_ext_s(None,None)
+    self.unbind_ext_s(None, None)
 
   def whoami_s(
     self,
