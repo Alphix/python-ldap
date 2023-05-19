@@ -18,7 +18,7 @@ import ldap
 
 from pyasn1.error import PyAsn1Error
 
-from typing import Dict, List, Tuple, Type, Optional
+from typing import Dict, Iterable, List, Tuple, Type, Optional, overload
 from ldap.types import LDAPControlTuple
 
 
@@ -118,8 +118,13 @@ class LDAPControl(RequestControl, ResponseControl):
     self.encodedControlValue = encodedControlValue
 
 
+@overload
+def RequestControlTuples(ldapControls: None) -> None: ...
+@overload
+def RequestControlTuples(ldapControls: Iterable[RequestControl]) -> List[LDAPControlTuple]: ...
+
 def RequestControlTuples(
-    ldapControls: Optional[List[RequestControl]]
+    ldapControls: Optional[Iterable[RequestControl]]
   ) -> Optional[List[LDAPControlTuple]]:
   """
   Return list of readily encoded 3-tuples which can be directly
