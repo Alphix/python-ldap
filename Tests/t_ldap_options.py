@@ -116,13 +116,6 @@ class BaseTestOptions:
         # None or a distribution or OS-specific path
         self.get_option(ldap.OPT_X_TLS_CACERTFILE)
 
-    def test_readonly(self):
-        value = self.get_option(ldap.OPT_API_INFO)
-        self.assertIsInstance(value, dict)
-        with self.assertRaises(ValueError) as e:
-            self.set_option(ldap.OPT_API_INFO, value)
-        self.assertIn('read-only', str(e.exception))
-
 
 class TestGlobalOptions(BaseTestOptions, unittest.TestCase):
     """Test setting/getting options globally
@@ -133,6 +126,13 @@ class TestGlobalOptions(BaseTestOptions, unittest.TestCase):
 
     def set_option(self, option, value):
         return ldap.set_option(option, value)
+
+    def test_readonly(self):
+        value = self.get_option(ldap.OPT_API_INFO)
+        self.assertIsInstance(value, dict)
+        with self.assertRaises(ValueError) as e:
+            self.set_option(ldap.OPT_API_INFO, value)
+        self.assertIn('read-only', str(e.exception))
 
 
 class TestLDAPObjectOptions(BaseTestOptions, SlapdTestCase):
@@ -156,6 +156,19 @@ class TestLDAPObjectOptions(BaseTestOptions, SlapdTestCase):
 
     def set_option(self, option, value):
         return self.conn.set_option(option, value)
+
+    def test_readonly(self):
+        value = self.get_option(ldap.OPT_DESC)
+        self.assertIsInstance(value, int)
+        with self.assertRaises(ValueError) as e:
+            self.set_option(ldap.OPT_DESC, value)
+        self.assertIn('read-only', str(e.exception))
+
+    def test_invalid_type(self):
+        value = self.get_option(ldap.OPT_API_INFO)
+        self.assertIsInstance(value, dict)
+        with self.assertRaises(TypeError):
+            self.set_option(ldap.OPT_API_INFO, value)
 
     def test_network_timeout_attribute(self):
         option = ldap.OPT_NETWORK_TIMEOUT

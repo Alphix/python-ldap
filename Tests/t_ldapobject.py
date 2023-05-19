@@ -437,8 +437,10 @@ class Test00_SimpleLDAPObject(SlapdTestCase):
         l = self.ldap_object_class(self.server.ldap_uri)
         peercert = l.get_option(ldap.OPT_X_TLS_PEERCERT)
         self.assertEqual(peercert, None)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             l.set_option(ldap.OPT_X_TLS_PEERCERT, b"")
+        with self.assertRaises(ValueError):
+            l.set_option(ldap.OPT_X_TLS_PEERCERT, "")
 
         l.set_option(ldap.OPT_X_TLS_CACERTFILE, self.server.cafile)
         l.set_option(ldap.OPT_X_TLS_NEWCTX, 0)

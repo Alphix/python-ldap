@@ -12,7 +12,7 @@ from ldap.pkginfo import __version__, __author__, __license__
 from ldap.controls import RequestControl, ResponseControl
 
 from ldap_types import *
-from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, List, Sequence, TextIO, Tuple, Type
+from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, Iterable, List, Sequence, TextIO, Tuple, Type, cast
 from types import TracebackType
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -1156,14 +1156,34 @@ class SimpleLDAPObject:
     else:
       return result
 
-  def set_option(self, option: int, invalue: Any) -> Any:
-    if option==ldap.OPT_SERVER_CONTROLS or option==ldap.OPT_CLIENT_CONTROLS:
-      invalue = RequestControlTuples(invalue)
+  def set_option(
+    self,
+    option: int,
+    invalue: bool | int | str | bytes | float | Iterable[RequestControl] | None,
+  ) -> None:
+    if option == ldap.OPT_SERVER_CONTROLS or option == ldap.OPT_CLIENT_CONTROLS:
+      assert isinstance(invalue, Iterable)
+      for x in invalue:
+        assert isinstance(x, RequestControl)
+      invalue = cast(Iterable[RequestControl], invalue)
+      value: bool | int | str | float | List[LDAPControlTuple] | None = RequestControlTuples(invalue)
+    else:
+      if invalue is None:
+        value = invalue
+      elif isinstance(invalue, bool):
+        value = invalue
+      elif isinstance(invalue, int):
+        value = invalue
+      elif isinstance(invalue, str):
+        value = invalue
+      elif isinstance(invalue, float):
+        value = invalue
+      else:
+        raise TypeError(f"invalid type passed to set_option: {type(invalue)}")
 
-    with self._lock(self._l.set_option, option, invalue) as lock:
-      result = self._l.set_option(option, invalue)
-      lock.result = result
-      return result
+    with self._lock(self._l.set_option, option, value) as lock:
+      self._l.set_option(option, value)
+      lock.result = None
 
   def search_subschemasubentry_s(
     self,
