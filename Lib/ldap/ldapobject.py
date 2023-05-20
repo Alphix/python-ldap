@@ -764,9 +764,9 @@ class SimpleLDAPObject:
 
   def passwd(
     self,
-    user: str,
-    oldpw: str,
-    newpw: str,
+    user: str | None,
+    oldpw: str | None,
+    newpw: str | None,
     serverctrls: List[RequestControl] | None = None,
     clientctrls: List[RequestControl] | None = None,
   ) -> int:
@@ -775,19 +775,22 @@ class SimpleLDAPObject:
     with self._lock(self._l.passwd, user, oldpw, newpw, sctrls, cctrls) as lock:
       result = self._l.passwd(user, oldpw, newpw, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def passwd_s(
     self,
-    user: str,
-    oldpw: str,
-    newpw: str,
+    user: str | None,
+    oldpw: str | None,
+    newpw: str | None,
     serverctrls: List[RequestControl] | None = None,
     clientctrls: List[RequestControl] | None = None,
     extract_newpw: bool = False,
-  ) -> Tuple[str, bytes | PasswordModifyResponse]:
+  ) -> Tuple[str, bytes | PasswordModifyResponse | None]:
     msgid = self.passwd(user, oldpw, newpw, serverctrls, clientctrls)
-    respoid, respvalue = self.extop_result(msgid, all=1, timeout=self.timeout)
+    _, _, _, _, respoid, respvalue = self.result4(
+        msgid, all=1, timeout=self.timeout,
+        add_ctrls=1, add_intermediates=1
+    )
 
     if respoid != PasswordModifyResponse.responseName:
       raise ldap.PROTOCOL_ERROR("Unexpected OID %s in extended response!" % respoid)
