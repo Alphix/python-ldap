@@ -119,7 +119,7 @@ class EntryChangeNotificationControl(ResponseControl):
 
   controlType = "2.16.840.1.113730.3.4.7"
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: Optional[bytes]) -> None:
     ecncValue,_ = decoder.decode(encodedControlValue,asn1Spec=EntryChangeNotificationValue())
     self.changeType = int(ecncValue.getComponentByName('changeType'))
     previousDN = ecncValue.getComponentByName('previousDN')

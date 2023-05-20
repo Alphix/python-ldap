@@ -9,7 +9,7 @@ from ldap.pkginfo import __version__, __author__, __license__
 
 from ldap.controls import RequestControl, ResponseControl
 
-from ldap.types import LDAPAddModList, LDAPModifyModList, LDAPEntryDict, LDAPControlTuple
+from ldap.types import LDAPAddModList, LDAPModifyModList, LDAPEntryDict, LDAPControlTuple, LDAPResult, LDAPResult3, LDAPResultDecoded
 from typing import (
     Any,
     BinaryIO,
@@ -941,28 +941,32 @@ class SimpleLDAPObject:
     timeout: Optional[Union[int, float]] = None,
     add_ctrls: int = 0,
     add_intermediates: int = 0,
-    add_extop: int = 0,
+    add_extop: int = 0, # obsolete, but kept for backward compatibility
     resp_ctrl_classes: Optional[Dict[str, Type[ResponseControl]]] = None,
-  ) -> Tuple[Optional[int], Optional[Any], Optional[int], Optional[List[ResponseControl]], Optional[Any], Optional[Any]]:
+  ) -> Union[Tuple[int, Union[Sequence[LDAPResult], Sequence[LDAPResultDecoded]], int, List[ResponseControl], Optional[str], Optional[bytes]], Tuple[None, None, None, None, None, None]]:
+
     if timeout is None:
       timeout = self.timeout
 
     ldap_result = None
-    with self._lock(self._l.result4, msgid,all,timeout,add_ctrls,add_intermediates,add_extop) as lock:
-      ldap_result = self._l.result4(msgid, all, timeout, add_ctrls, add_intermediates, add_extop)
+    with self._lock(self._l.result4, msgid,all,timeout,add_ctrls,add_intermediates) as lock:
+      ldap_result = self._l.result4(msgid, all, timeout, add_ctrls, add_intermediates)
       lock.result = ldap_result
 
     if ldap_result is None:
-        resp_type, resp_data, resp_msgid, resp_ctrls, resp_name, resp_value = (None,None,None,None,None,None)
-    else:
-      if len(ldap_result)==4:
-        resp_type, resp_data, resp_msgid, resp_ctrls = ldap_result
-        resp_name, resp_value = None,None
-      else:
-        resp_type, resp_data, resp_msgid, resp_ctrls, resp_name, resp_value = ldap_result
-      if add_ctrls:
-        resp_data = [ (t,r,DecodeControlTuples(c,resp_ctrl_classes)) for t,r,c in resp_data ]
-    decoded_resp_ctrls = DecodeControlTuples(resp_ctrls,resp_ctrl_classes)
+      return None, None, None, None, None, None
+
+    resp_type, resp_data, resp_msgid, resp_ctrls, resp_name, resp_value = ldap_result
+    decoded_resp_ctrls = DecodeControlTuples(resp_ctrls, resp_ctrl_classes)
+
+    if add_ctrls:
+      tmp_resp_data = cast(Sequence[LDAPResult3], resp_data)
+      decoded_resp_data = cast(
+        List[LDAPResultDecoded],
+        [ (t, r, DecodeControlTuples(c, resp_ctrl_classes)) for t, r, c in tmp_resp_data ]
+      )
+      return resp_type, decoded_resp_data, resp_msgid, decoded_resp_ctrls, resp_name, resp_value
+
     return resp_type, resp_data, resp_msgid, decoded_resp_ctrls, resp_name, resp_value
 
   def search_ext(

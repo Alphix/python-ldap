@@ -18,7 +18,7 @@ from pyasn1.type import tag,namedtype,univ,constraint
 from pyasn1.codec.ber import encoder,decoder
 from pyasn1_modules.rfc2251 import LDAPString
 
-from typing import Union
+from typing import Union, Optional
 
 
 class PagedResultsControlValue(univ.Sequence):  # type: ignore
@@ -54,7 +54,7 @@ class SimplePagedResultsControl(RequestControl,ResponseControl):
     pc.setComponentByName('cookie',LDAPString(self.cookie))
     return encoder.encode(pc)  # type: ignore
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: Optional[bytes]) -> None:
     decodedValue,_ = decoder.decode(encodedControlValue,asn1Spec=PagedResultsControlValue())
     self.size = int(decodedValue.getComponentByName('size'))
     self.cookie = bytes(decodedValue.getComponentByName('cookie'))

@@ -88,7 +88,7 @@ class PasswordPolicyControl(ValueLessRequestControl,ResponseControl):
     self.graceAuthNsRemaining: Optional[int] = None
     self.error: Optional[int] = None
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: Optional[bytes]) -> None:
     ppolicyValue,_ = decoder.decode(encodedControlValue,asn1Spec=PasswordPolicyResponseValue())
     warning = ppolicyValue.getComponentByName('warning')
     if warning.hasValue():

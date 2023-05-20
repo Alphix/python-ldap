@@ -106,7 +106,7 @@ class DereferenceControl(LDAPControl):
   def encodeControlValue(self) -> bytes:
     return encoder.encode(self._derefSpecs())  # type: ignore
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: Optional[bytes]) -> None:
     decodedValue,_ = decoder.decode(encodedControlValue,asn1Spec=DerefResultControlValue())
     # Starting from the inside out:
     #   The innermost dict maps attribute names to lists of attribute values

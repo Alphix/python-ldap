@@ -45,7 +45,7 @@ class ReadEntryControl(LDAPControl):
       attributeSelection.setComponentByPosition(i,self.attrList[i])
     return encoder.encode(attributeSelection)  # type: ignore
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: Optional[bytes]) -> None:
     decodedEntry,_ = decoder.decode(encodedControlValue,asn1Spec=SearchResultEntry())
     self.dn = str(decodedEntry[0])
     self.entry = {}

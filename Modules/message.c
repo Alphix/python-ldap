@@ -5,16 +5,26 @@
 /*
  * Converts an LDAP message into a Python structure.
  *
- * On success, returns a list of dictionaries.
+ * On success, returns a list of 2- or 3-tuples.
  * On failure, returns NULL, and sets an error.
  *
- * The message m is always freed, regardless of return value.
+ * For an entry, the 2-tuples contain:
+ *   (dn: str, attrdict: Dict[str, List[bytes]])
  *
- * If add_ctrls is non-zero, per-entry/referral/partial/intermediate
- * controls will be added as a third item to each entry tuple
+ * For a referral, the 2-tuples contain:
+ *   (None, reflist: List[str])
+ *
+ * If add_ctrls is non-zero, per-entry/referral controls will be added
+ * as a third item to each of the above tuples.
  *
  * If add_intermediates is non-zero, intermediate/partial results will
- * be returned
+ * also be included in the returned list, always as 3-tuples:
+ *   (oid: str, value: bytes, controls)
+ *
+ * Controls are lists of 3-tuples:
+ *   (type: str, criticality: bool, value: bytes | None)
+ *
+ * The message m is always freed, regardless of return value.
  */
 PyObject *
 LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, int add_ctrls,
@@ -25,9 +35,9 @@ LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, int add_ctrls,
      * We always free m.
      */
 
-    PyObject *result, *pyctrls = 0;
+    PyObject *result, *pyctrls = NULL;
     LDAPMessage *entry;
-    LDAPControl **serverctrls = 0;
+    LDAPControl **serverctrls = NULL;
     int rc;
 
     result = PyList_New(0);

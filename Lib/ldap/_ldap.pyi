@@ -1,8 +1,8 @@
 # Type annotations for the ldap._ldap C module
 
-from typing import Any, ClassVar, final, List, Optional, Sequence, Union
+from typing import Any, ClassVar, final, List, Optional, Sequence, Union, Tuple
 from ldap.controls import RequestControl
-from ldap.types import LDAPControlTuple
+from ldap.types import LDAPControlTuple, LDAPResult
 import ldap.sasl
 
 __version__: str
@@ -202,7 +202,14 @@ class LDAP:
     def modify_ext(self, *args: Any, **kwargs: Any) -> Any: ...
     def passwd(self, *args: Any, **kwargs: Any) -> Any: ...
     def rename(self, *args: Any, **kwargs: Any) -> Any: ...
-    def result4(self, *args: Any, **kwargs: Any) -> Any: ...
+    def result4(
+        self,
+        msgid: int,
+        all: int,
+        timeout: Union[int, float],
+        add_ctrls: int,
+        add_intermediates: int,
+    ) -> Optional[Tuple[int, List[LDAPResult], int, List[LDAPControlTuple], Optional[str], Optional[bytes]]]: ...
     def sasl_bind_s(
         self,
         dn: Optional[str],

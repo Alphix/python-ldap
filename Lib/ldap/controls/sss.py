@@ -21,7 +21,7 @@ from ldap.controls import (RequestControl, ResponseControl,
 from pyasn1.type import univ, namedtype, tag, namedval, constraint
 from pyasn1.codec.ber import encoder, decoder
 
-from typing import List, Union
+from typing import List, Union, Optional
 
 #    SortKeyList ::= SEQUENCE OF SEQUENCE {
 #                     attributeType   AttributeDescription,
@@ -118,7 +118,7 @@ class SSSResponseControl(ResponseControl):
     def __init__(self, criticality: bool = False):
         super().__init__(criticality)
 
-    def decodeControlValue(self, encoded: bytes) -> None:
+    def decodeControlValue(self, encoded: Optional[bytes]) -> None:
         p, rest = decoder.decode(encoded, asn1Spec=SortResultType())
         assert not rest, 'all data could not be decoded'
         sort_result = p.getComponentByName('sortResult')

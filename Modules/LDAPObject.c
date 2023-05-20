@@ -1042,22 +1042,21 @@ l_ldap_result4(LDAPObject *self, PyObject *args)
     double timeout = -1.0;
     int add_ctrls = 0;
     int add_intermediates = 0;
-    int add_extop = 0;
     struct timeval tv;
     struct timeval *tvp;
     int res_type;
     LDAPMessage *msg = NULL;
-    PyObject *retval, *pmsg, *pyctrls = 0;
+    PyObject *retval, *pmsg, *pyctrls = NULL;
     int res_msgid = 0;
-    char *retoid = 0;
+    char *retoid = NULL;
     PyObject *valuestr = NULL;
     int result = LDAP_SUCCESS;
-    LDAPControl **serverctrls = 0;
+    LDAPControl **serverctrls = NULL;
 
-    if (!PyArg_ParseTuple
-        (args, "|iidiii:result4", &msgid, &all, &timeout, &add_ctrls,
-         &add_intermediates, &add_extop))
+    if (!PyArg_ParseTuple(args, "|iidii:result4", &msgid, &all, &timeout,
+			  &add_ctrls, &add_intermediates))
         return NULL;
+
     if (not_valid(self))
         return NULL;
 
@@ -1077,16 +1076,10 @@ l_ldap_result4(LDAPObject *self, PyObject *args)
         return LDAPerror(self->ldap);
 
     if (res_type == 0) {
-        /* Polls return (None, None, None, None); timeouts raise an exception */
+        /* Polls return None; timeouts raise an exception */
         if (timeout == 0) {
-            if (add_extop) {
-                return Py_BuildValue("(OOOOOO)", Py_None, Py_None, Py_None,
-                                     Py_None, Py_None, Py_None);
-            }
-            else {
-                return Py_BuildValue("(OOOO)", Py_None, Py_None, Py_None,
-                                     Py_None);
-            }
+            Py_INCREF(Py_None);
+            return Py_None;
         }
         else
             return LDAPerr(LDAP_TIMEOUT);
@@ -1154,20 +1147,12 @@ l_ldap_result4(LDAPObject *self, PyObject *args)
     }
     else {
         /* s handles NULL, but O does not */
-        if (add_extop) {
-            retval = Py_BuildValue("(iOiOsO)", res_type, pmsg, res_msgid,
-                                   pyctrls, retoid,
-                                   valuestr ? valuestr : Py_None);
-        }
-        else {
-            retval =
-                Py_BuildValue("(iOiO)", res_type, pmsg, res_msgid, pyctrls);
-        }
-
-        if (pmsg != Py_None) {
-            Py_DECREF(pmsg);
-        }
+        retval = Py_BuildValue("(iOiOsO)", res_type, pmsg, res_msgid,
+                               pyctrls, retoid,
+                               valuestr ? valuestr : Py_None);
+        Py_DECREF(pmsg);
     }
+
     Py_XDECREF(valuestr);
     Py_XDECREF(pyctrls);
     return retval;

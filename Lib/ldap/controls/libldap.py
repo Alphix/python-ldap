@@ -91,7 +91,7 @@ class SimplePagedResultsControl(LDAPControl):
   def encodeControlValue(self) -> bytes:
     return _ldap.encode_page_control(self.size,self.cookie)  # type: ignore
 
-  def decodeControlValue(self,encodedControlValue: bytes) -> None:
+  def decodeControlValue(self,encodedControlValue: Optional[bytes]) -> None:
     self.size,self.cookie = _ldap.decode_page_control(encodedControlValue)
 
 KNOWN_RESPONSE_CONTROLS[ldap.CONTROL_PAGEDRESULTS] = SimplePagedResultsControl

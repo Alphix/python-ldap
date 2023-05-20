@@ -10,7 +10,7 @@ from ldap.controls import ValueLessRequestControl,ResponseControl
 from pyasn1.type import univ
 from pyasn1.codec.ber import decoder
 
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 __all__ = [
   'SearchNoOpControl',
@@ -33,7 +33,7 @@ class SearchNoOpControl(ValueLessRequestControl,ResponseControl):
   class SearchNoOpControlValue(univ.Sequence):  # type: ignore
     pass
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: Optional[bytes]) -> None:
     decodedValue,_ = decoder.decode(encodedControlValue,asn1Spec=self.SearchNoOpControlValue())
     self.resultCode = int(decodedValue[0])
     self.numSearchResults = int(decodedValue[1])
