@@ -686,7 +686,7 @@ class SimpleLDAPObject:
     with self._lock(self._l.modify_ext, dn, modlist, sctrls, cctrls) as lock:
       result = self._l.modify_ext(dn, modlist, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def modify_ext_s(
     self,
@@ -694,10 +694,9 @@ class SimpleLDAPObject:
     modlist: LDAPModifyModList,
     serverctrls: List[RequestControl] | None = None,
     clientctrls: List[RequestControl] | None = None,
-  ) -> Tuple[Any, Any, Any, Any]:
+  ) -> Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]] | Tuple[None, None, None, None]:
     msgid = self.modify_ext(dn,modlist,serverctrls,clientctrls)
-    resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid,all=1,timeout=self.timeout)
-    return resp_type, resp_data, resp_msgid, resp_ctrls
+    return self.result3(msgid, all=1, timeout=self.timeout)
 
   def modify(
     self,
@@ -708,7 +707,7 @@ class SimpleLDAPObject:
     modify(dn, modlist) -> int
     modify_s(dn, modlist) -> None
     modify_ext(dn, modlist[,serverctrls=None[,clientctrls=None]]) -> int
-    modify_ext_s(dn, modlist[,serverctrls=None[,clientctrls=None]]) -> tuple
+    modify_ext_s(dn, modlist[,serverctrls=None[,clientctrls=None]]) -> 4-tuple
         Performs an LDAP modify operation on an entry's attributes.
         dn is the DN of the entry to modify, and modlist is the list
         of modifications to make to the entry.
@@ -916,13 +915,13 @@ class SimpleLDAPObject:
     all: int = 1,
     timeout: int | None = None,
     resp_ctrl_classes: Dict[str, Type[ResponseControl]] | None = None,
-  ) -> Tuple[int | None, Any | None, int | None, List[ResponseControl] | None]:
+  ) -> Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]] | Tuple[None, None, None, None]:
     resp_type, resp_data, resp_msgid, decoded_resp_ctrls, retoid, retval = self.result4(
       msgid,all,timeout,
       add_ctrls=0,add_intermediates=0,add_extop=0,
       resp_ctrl_classes=resp_ctrl_classes
     )
-    return resp_type, resp_data, resp_msgid, decoded_resp_ctrls
+    return resp_type, resp_data, resp_msgid, decoded_resp_ctrls  # type: ignore
 
   def result4(
     self,
