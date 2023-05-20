@@ -3,6 +3,7 @@
 from typing import Any, ClassVar, final, List, Optional, Sequence, Union
 from ldap.controls import RequestControl
 from ldap.types import LDAPControlTuple
+import ldap.sasl
 
 __version__: str
 __license__: str
@@ -203,7 +204,14 @@ class LDAP:
     def rename(self, *args: Any, **kwargs: Any) -> Any: ...
     def result4(self, *args: Any, **kwargs: Any) -> Any: ...
     def sasl_bind_s(self, *args: Any, **kwargs: Any) -> Any: ...
-    def sasl_interactive_bind_s(self, *args: Any, **kwargs: Any) -> Any: ...
+    def sasl_interactive_bind_s(
+        self,
+        who: str,
+        auth: ldap.sasl.sasl,
+        serverctrls: Optional[List[LDAPControlTuple]],
+        clientctrls: Optional[List[LDAPControlTuple]],
+        sasl_flags: int,
+    ) -> None: ...
     def search_ext(
         self,
         base: str,

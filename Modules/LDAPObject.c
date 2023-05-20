@@ -719,7 +719,7 @@ l_ldap_sasl_interactive_bind_s(LDAPObject *self, PyObject *args)
 
     PyObject *SASLObject = NULL;
     PyObject *mechanism = NULL;
-    int msgid;
+    int ldaperror;
     static unsigned sasl_flags = LDAP_SASL_QUIET;
 
     if (!PyArg_ParseTuple
@@ -755,20 +755,23 @@ l_ldap_sasl_interactive_bind_s(LDAPObject *self, PyObject *args)
        Python object SASLObject, but passing it through some
        static variable would destroy thread safety, IMHO.
      */
-    msgid = ldap_sasl_interactive_bind_s(self->ldap,
-                                         who,
-                                         c_mechanism,
-                                         (LDAPControl **)server_ldcs,
-                                         (LDAPControl **)client_ldcs,
-                                         sasl_flags,
-                                         py_ldap_sasl_interaction, SASLObject);
+    ldaperror = ldap_sasl_interactive_bind_s(self->ldap,
+                                             who,
+                                             c_mechanism,
+                                             (LDAPControl **)server_ldcs,
+                                             (LDAPControl **)client_ldcs,
+                                             sasl_flags,
+                                             py_ldap_sasl_interaction,
+                                             SASLObject);
 
     LDAPControl_List_DEL(server_ldcs);
     LDAPControl_List_DEL(client_ldcs);
 
-    if (msgid != LDAP_SUCCESS)
+    if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
-    return PyLong_FromLong(msgid);
+
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 #endif /* HAVE_SASL */
 
