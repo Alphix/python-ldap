@@ -703,7 +703,9 @@ l_ldap_sasl_bind_s(LDAPObject *self, PyObject *args)
     }
     else if (ldaperror != LDAP_SUCCESS)
         return LDAPerror(self->ldap);
-    return PyLong_FromLong(ldaperror);
+
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static PyObject *

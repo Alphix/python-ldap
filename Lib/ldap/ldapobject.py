@@ -508,24 +508,21 @@ class SimpleLDAPObject:
 
   def sasl_bind_s(
     self,
-    dn: str,
-    mechanism: str,
-    cred: str,
+    dn: Optional[str],
+    mechanism: Optional[str],
+    cred: Optional[str],
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-  ) -> Union[int, bytes]:
+  ) -> Optional[bytes]:
     """
-    sasl_bind_s(dn, mechanism, cred [,serverctrls=None[,clientctrls=None]]) -> int | bytes
+    sasl_bind_s(dn, mechanism, cred [,serverctrls=None[,clientctrls=None]]) -> bytes | None
     """
-    # FIXME: sasl_bind_s returns zero on success, raises an exception, or
-    #        returns bytes (server credentials). We should probably filter
-    #        out the (useless) int and only return bytes | None.
     sctrls = RequestControlTuples(serverctrls)
     cctrls = RequestControlTuples(clientctrls)
     with self._lock(self._l.sasl_bind_s, dn, mechanism, cred, sctrls, cctrls) as lock:
       result = self._l.sasl_bind_s(dn, mechanism, cred, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def compare_ext(
     self,
