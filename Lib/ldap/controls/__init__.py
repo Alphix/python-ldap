@@ -92,13 +92,12 @@ class ResponseControl:
   ) -> None:
     self.criticality = criticality
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: bytes | None) -> None:
     """
     decodes the BER-encoded ASN.1 control value and sets the appropriate
     class attributes
     """
-    # The type hint can be removed once class LDAPControl is removed
-    self.encodedControlValue: bytes | None = encodedControlValue
+    self.encodedControlValue = encodedControlValue
 
 
 class LDAPControl(RequestControl, ResponseControl):
@@ -145,7 +144,7 @@ def RequestControlTuples(
 
 
 def DecodeControlTuples(
-    ldapControlTuples: List[Tuple[str, bool, bytes]] | None,
+    ldapControlTuples: List[LDAPControlTuple] | None,
     knownLDAPControls: Dict[str, Type[ResponseControl]] | None = None,
   ) -> List[ResponseControl]:
   """

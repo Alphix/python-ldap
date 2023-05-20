@@ -119,7 +119,7 @@ class SSSResponseControl(ResponseControl):
     def __init__(self, criticality: bool = False):
         super().__init__(criticality)
 
-    def decodeControlValue(self, encoded: bytes) -> None:
+    def decodeControlValue(self, encoded: bytes | None) -> None:
         p, rest = decoder.decode(encoded, asn1Spec=SortResultType())
         assert not rest, 'all data could not be decoded'
         sort_result = p.getComponentByName('sortResult')

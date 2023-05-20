@@ -53,7 +53,7 @@ class SimplePagedResultsControl(RequestControl,ResponseControl):
     pc.setComponentByName('cookie',LDAPString(self.cookie))
     return encoder.encode(pc)  # type: ignore
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: bytes | None) -> None:
     decodedValue,_ = decoder.decode(encodedControlValue,asn1Spec=PagedResultsControlValue())
     self.size = int(decodedValue.getComponentByName('size'))
     self.cookie = bytes(decodedValue.getComponentByName('cookie'))

@@ -52,8 +52,9 @@ class OctetStringInteger(LDAPControl):
   def encodeControlValue(self) -> bytes:
     return struct.pack('!Q',self.integerValue)
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
-    self.integerValue = struct.unpack('!Q',encodedControlValue)[0]
+  def decodeControlValue(self, encodedControlValue: bytes | None) -> None:
+    if encodedControlValue is not None:
+      self.integerValue = struct.unpack('!Q',encodedControlValue)[0]
 
 
 class BooleanControl(LDAPControl):
@@ -78,7 +79,7 @@ class BooleanControl(LDAPControl):
   def encodeControlValue(self) -> bytes:
     return encoder.encode(self.booleanValue,asn1Spec=univ.Boolean())  # type: ignore
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: bytes | None) -> None:
     decodedValue,_ = decoder.decode(encodedControlValue,asn1Spec=univ.Boolean())
     self.booleanValue = bool(int(decodedValue))
 
@@ -144,7 +145,7 @@ class AuthorizationIdentityResponseControl(ResponseControl):
   """
   controlType = '2.16.840.1.113730.3.4.15'
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: bytes | None) -> None:
     self.authzId = encodedControlValue
 
 

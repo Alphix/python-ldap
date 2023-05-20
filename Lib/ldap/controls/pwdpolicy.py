@@ -22,8 +22,8 @@ class PasswordExpiringControl(ResponseControl):
   """
   controlType = '2.16.840.1.113730.3.4.5'
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
-    self.gracePeriod = int(encodedControlValue)
+  def decodeControlValue(self, encodedControlValue: bytes | None) -> None:
+    self.gracePeriod = int(encodedControlValue or 0)
 
 KNOWN_RESPONSE_CONTROLS[PasswordExpiringControl.controlType] = PasswordExpiringControl
 
@@ -34,7 +34,7 @@ class PasswordExpiredControl(ResponseControl):
   """
   controlType = '2.16.840.1.113730.3.4.4'
 
-  def decodeControlValue(self, encodedControlValue: bytes) -> None:
+  def decodeControlValue(self, encodedControlValue: bytes | None) -> None:
     self.passwordExpired = encodedControlValue == b'0'
 
 KNOWN_RESPONSE_CONTROLS[PasswordExpiredControl.controlType] = PasswordExpiredControl
