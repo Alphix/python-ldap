@@ -449,8 +449,8 @@ class SimpleLDAPObject:
     sctrls = RequestControlTuples(serverctrls)
     cctrls = RequestControlTuples(clientctrls)
     with self._lock(self._l.sasl_interactive_bind_s, who, auth, sctrls, cctrls, sasl_flags) as lock:
-      result = self._l.sasl_interactive_bind_s(who, auth, sctrls, cctrls, sasl_flags)
-      lock.result = result
+      self._l.sasl_interactive_bind_s(who, auth, sctrls, cctrls, sasl_flags)
+      lock.result = None
 
   def sasl_non_interactive_bind_s(
     self,
