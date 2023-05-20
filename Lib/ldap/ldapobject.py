@@ -825,7 +825,7 @@ class SimpleLDAPObject:
     with self._lock(self._l.rename, dn, newrdn, newsuperior, delold, sctrls, cctrls) as lock:
       result = self._l.rename(dn, newrdn, newsuperior, delold, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def rename_s(
     self,
@@ -838,7 +838,6 @@ class SimpleLDAPObject:
   ) -> None:
     msgid = self.rename(dn,newrdn,newsuperior,delold,serverctrls,clientctrls)
     resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid,all=1,timeout=self.timeout)
-    #return resp_type, resp_data, resp_msgid, resp_ctrls
 
   def result(
     self,
