@@ -1025,7 +1025,7 @@ class SimpleLDAPObject:
         sctrls, cctrls, timeout, sizelimit
       )
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def search_ext_s(
     self,
