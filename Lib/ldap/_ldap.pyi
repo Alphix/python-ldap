@@ -201,7 +201,15 @@ class LDAP:
     def get_option(self, *args: Any, **kwargs: Any) -> Any: ...
     def modify_ext(self, *args: Any, **kwargs: Any) -> Any: ...
     def passwd(self, *args: Any, **kwargs: Any) -> Any: ...
-    def rename(self, *args: Any, **kwargs: Any) -> Any: ...
+    def rename(
+        self,
+        dn: str,
+        newrdn: str,
+        newsuperior: str | None,
+        delold: int,
+        serverctrls: Optional[List[LDAPControlTuple]],
+        clientctrls: Optional[List[LDAPControlTuple]],
+    ) -> int: ...
     def result4(
         self,
         msgid: int,

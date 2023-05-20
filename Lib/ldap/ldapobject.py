@@ -838,7 +838,7 @@ class SimpleLDAPObject:
     with self._lock(self._l.rename, dn, newrdn, newsuperior, delold, sctrls, cctrls) as lock:
       result = self._l.rename(dn, newrdn, newsuperior, delold, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def rename_s(
     self,
