@@ -2,7 +2,7 @@
 
 from typing import Any, ClassVar, final, List, Optional, Sequence, Union, Tuple
 from ldap.controls import RequestControl
-from ldap.types import LDAPControlTuple, LDAPResult
+from ldap.types import LDAPControlTuple, LDAPResult, LDAPModifyModList
 import ldap.sasl
 
 __version__: str
@@ -199,7 +199,13 @@ class LDAP:
     def delete_ext(self, *args: Any, **kwargs: Any) -> Any: ...
     def extop(self, *args: Any, **kwargs: Any) -> Any: ...
     def get_option(self, *args: Any, **kwargs: Any) -> Any: ...
-    def modify_ext(self, *args: Any, **kwargs: Any) -> Any: ...
+    def modify_ext(
+        self,
+        dn: str,
+        modlist: LDAPModifyModList,
+        serverctrls: Optional[List[LDAPControlTuple]],
+        clientctrls: Optional[List[LDAPControlTuple]],
+    ) -> int: ...
     def passwd(
         self,
         user: Optional[str],
