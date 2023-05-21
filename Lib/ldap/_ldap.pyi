@@ -194,7 +194,12 @@ VERSION_MIN: int
 class LDAP:
     def abandon_ext(self, *args: Any, **kwargs: Any) -> Any: ...
     def add_ext(self, *args: Any, **kwargs: Any) -> Any: ...
-    def cancel(self, *args: Any, **kwargs: Any) -> Any: ...
+    def cancel(
+        self,
+        cancelid: int,
+        serverctrls: Optional[List[LDAPControlTuple]],
+        clientctrls: Optional[List[LDAPControlTuple]],
+    ) -> int: ...
     def compare_ext(
         self,
         dn: str,

@@ -323,20 +323,20 @@ class SimpleLDAPObject:
     with self._lock(self._l.cancel, cancelid, sctrls, cctrls) as lock:
       result = self._l.cancel(cancelid, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def cancel_s(
     self,
     cancelid: int,
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-  ) -> Optional[int]:
-    msgid = self.cancel(cancelid,serverctrls,clientctrls)
+  ) -> Optional[Union[Tuple[int, Sequence[LDAPResult]], Tuple[None, None]]]:
+    msgid = self.cancel(cancelid, serverctrls, clientctrls)
     try:
-      res = self.result(msgid,all=1,timeout=self.timeout)
-    except (ldap.CANCELLED,ldap.SUCCESS):
+      res = self.result(msgid)
+    except (ldap.CANCELLED, ldap.SUCCESS):
       res = None
-    return res  # type: ignore
+    return res
 
   def add_ext(
     self,
@@ -669,11 +669,11 @@ class SimpleLDAPObject:
 
   def extop_s(
     self,
-    extreq: ldap.extop.ExtendedRequest,
+    extreq: "ldap.extop.ExtendedRequest",
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-    extop_resp_class: Optional[Type[ldap.extop.ExtendedResponse]] = None,
-  ) -> Union[Tuple[Optional[str], Optional[bytes]], ldap.extop.ExtendedResponse]:
+    extop_resp_class: Optional[Type["ldap.extop.ExtendedResponse"]] = None,
+  ) -> Union[Tuple[Optional[str], Optional[bytes]], "ldap.extop.ExtendedResponse"]:
     msgid = self.extop(extreq, serverctrls, clientctrls)
     res = self.extop_result(msgid)
     respoid, respvalue = self.extop_result(msgid)
@@ -859,7 +859,7 @@ class SimpleLDAPObject:
     msgid: int = ldap.RES_ANY,
     all: int = 1,
     timeout: Optional[Union[int, float]] = None,
-  ) -> Tuple[Optional[int], Optional[Any]]:
+  ) -> Union[Tuple[int, Sequence[LDAPResult]], Tuple[None, None]]:
     """
     result([msgid=RES_ANY [,all=1 [,timeout=None]]]) -> (result_type, result_data)
 
@@ -910,17 +910,17 @@ class SimpleLDAPObject:
         If a timeout occurs, a TIMEOUT exception is raised, unless
         polling (timeout = 0), in which case (None, None) is returned.
     """
-    resp_type, resp_data, resp_msgid = self.result2(msgid,all,timeout)
-    return resp_type, resp_data
+    resp_type, resp_data, resp_msgid = self.result2(msgid, all, timeout)
+    return resp_type, resp_data  # type: ignore
 
   def result2(
     self,
     msgid: int = ldap.RES_ANY,
     all: int = 1,
     timeout: Optional[Union[int, float]] = None,
-  ) -> Tuple[Optional[int], Optional[Any], Optional[int]]:
-    resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid,all,timeout)
-    return resp_type, resp_data, resp_msgid
+  ) -> Union[Tuple[int, Sequence[LDAPResult], int], Tuple[None, None, None]]:
+    resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid, all, timeout)
+    return resp_type, resp_data, resp_msgid  # type: ignore
 
   def result3(
     self,
@@ -930,9 +930,7 @@ class SimpleLDAPObject:
     resp_ctrl_classes: Optional[Dict[str, Type[ResponseControl]]] = None,
   ) -> Union[Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]], Tuple[None, None, None, None]]:
     resp_type, resp_data, resp_msgid, decoded_resp_ctrls, retoid, retval = self.result4(
-      msgid,all,timeout,
-      add_ctrls=0,add_intermediates=0,add_extop=0,
-      resp_ctrl_classes=resp_ctrl_classes
+      msgid, all, timeout, resp_ctrl_classes=resp_ctrl_classes
     )
     return resp_type, resp_data, resp_msgid, decoded_resp_ctrls  # type: ignore
 
