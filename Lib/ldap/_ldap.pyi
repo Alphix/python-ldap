@@ -1,6 +1,6 @@
 # Type annotations for the ldap._ldap C module
 
-from typing import Any, ClassVar, final, List, Optional, Sequence, Union, Tuple
+from typing import Any, ClassVar, Dict, final, List, Optional, Sequence, Union, Tuple
 from ldap.controls import RequestControl
 from ldap.types import LDAPControlTuple, LDAPResult, LDAPModifyModList
 import ldap.sasl
@@ -198,7 +198,10 @@ class LDAP:
     def compare_ext(self, *args: Any, **kwargs: Any) -> Any: ...
     def delete_ext(self, *args: Any, **kwargs: Any) -> Any: ...
     def extop(self, *args: Any, **kwargs: Any) -> Any: ...
-    def get_option(self, *args: Any, **kwargs: Any) -> Any: ...
+    def get_option(
+        self,
+        option: int,
+    ) -> Union[bool, int, str, bytes, float, Dict[str, Union[int, str, Tuple[str, ...]]], List[LDAPControlTuple]]: ...
     def modify_ext(
         self,
         dn: str,
