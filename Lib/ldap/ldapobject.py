@@ -414,14 +414,12 @@ class SimpleLDAPObject:
     cred: Optional[str] = None,
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-  ) -> Tuple[Any, Any, Any, Any]:
-    # FIXME: The return value could be more specific
+  ) -> Union[Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]], Tuple[None, None, None, None]]:
     """
     simple_bind_s([who=None[,cred=None[,serverctrls=None[,clientctrls=None]]]]) -> 4-tuple
     """
-    msgid = self.simple_bind(who,cred,serverctrls,clientctrls)
-    resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid,all=1,timeout=self.timeout)
-    return resp_type, resp_data, resp_msgid, resp_ctrls
+    msgid = self.simple_bind(who, cred, serverctrls, clientctrls)
+    return self.result3(msgid, timeout=self.timeout)
 
   def bind(
     self,
@@ -432,8 +430,8 @@ class SimpleLDAPObject:
     """
     bind(who, cred, method) -> int
     """
-    assert method==ldap.AUTH_SIMPLE,'Only simple bind supported in LDAPObject.bind()'
-    return self.simple_bind(who,cred)
+    assert method == ldap.AUTH_SIMPLE, 'Only simple bind supported in LDAPObject.bind()'
+    return self.simple_bind(who, cred)
 
   def bind_s(
     self,
@@ -445,7 +443,7 @@ class SimpleLDAPObject:
     bind_s(who, cred, method) -> None
     """
     msgid = self.bind(who,cred,method)
-    return self.result(msgid,all=1,timeout=self.timeout)  # type: ignore
+    self.result(msgid, timeout=self.timeout)
 
   def sasl_interactive_bind_s(
     self,
