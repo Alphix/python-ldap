@@ -601,7 +601,7 @@ class SimpleLDAPObject:
     delete(dn) -> int
     delete_s(dn) -> None
     delete_ext(dn[,serverctrls=None[,clientctrls=None]]) -> int
-    delete_ext_s(dn[,serverctrls=None[,clientctrls=None]]) -> tuple
+    delete_ext_s(dn[,serverctrls=None[,clientctrls=None]]) -> 4-tuple
         Performs an LDAP delete operation on dn. The asynchronous
         form returns the message id of the initiated request, and the
         result can be obtained from a subsequent call to result().
@@ -611,23 +611,22 @@ class SimpleLDAPObject:
     with self._lock(self._l.delete_ext, dn, sctrls, cctrls) as lock:
       result = self._l.delete_ext(dn, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def delete_ext_s(
     self,
     dn: str,
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-  ) -> Tuple[Any, Any, Any, Any]:
-    msgid = self.delete_ext(dn,serverctrls,clientctrls)
-    resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid,all=1,timeout=self.timeout)
-    return resp_type, resp_data, resp_msgid, resp_ctrls
+  ) -> Union[Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]], Tuple[None, None, None, None]]:
+    msgid = self.delete_ext(dn, serverctrls, clientctrls)
+    return self.result3(msgid)
 
   def delete(self, dn: str) -> int:
-    return self.delete_ext(dn,None,None)
+    return self.delete_ext(dn)
 
   def delete_s(self, dn: str) -> None:
-    self.delete_ext_s(dn,None,None)
+    self.delete_ext_s(dn)
 
   def extop(
     self,
