@@ -515,7 +515,7 @@ class SimpleLDAPObject:
     self,
     dn: str,
     attr: str,
-    value: bytes,
+    value: str | bytes,
     serverctrls: List[RequestControl] | None = None,
     clientctrls: List[RequestControl] | None = None,
   ) -> int:
@@ -541,19 +541,19 @@ class SimpleLDAPObject:
     with self._lock(self._l.compare_ext, dn, attr, value, sctrls, cctrls) as lock:
       result = self._l.compare_ext(dn, attr, value, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def compare_ext_s(
     self,
     dn: str,
     attr: str,
-    value: bytes,
+    value: str | bytes,
     serverctrls: List[RequestControl] | None = None,
     clientctrls: List[RequestControl] | None = None,
   ) -> bool:
-    msgid = self.compare_ext(dn,attr,value,serverctrls,clientctrls)
+    msgid = self.compare_ext(dn, attr, value, serverctrls, clientctrls)
     try:
-        ldap_res = self.result3(msgid,all=1,timeout=self.timeout)
+        ldap_res = self.result3(msgid)
     except ldap.COMPARE_TRUE:
       return True
     except ldap.COMPARE_FALSE:
@@ -566,17 +566,17 @@ class SimpleLDAPObject:
     self,
     dn: str,
     attr: str,
-    value: bytes,
+    value: str | bytes,
   ) -> int:
-    return self.compare_ext(dn,attr,value,None,None)
+    return self.compare_ext(dn, attr, value)
 
   def compare_s(
     self,
     dn: str,
     attr: str,
-    value: bytes,
+    value: str | bytes,
   ) -> bool:
-    return self.compare_ext_s(dn,attr,value,None,None)
+    return self.compare_ext_s(dn, attr, value)
 
   def delete_ext(
     self,
