@@ -967,7 +967,7 @@ class SimpleLDAPObject:
     self,
     base: str,
     scope: int,
-    filterstr: Optional[str] = None,
+    filterstr: Optional[str] = '(objectClass=*)',
     attrlist: Optional[List[str]] = None,
     attrsonly: int = 0,
     serverctrls: Optional[List[RequestControl]] = None,
@@ -1038,7 +1038,7 @@ class SimpleLDAPObject:
     self,
     base: str,
     scope: int,
-    filterstr: Optional[str] = None,
+    filterstr: Optional[str] = '(objectClass=*)',
     attrlist: Optional[List[str]] = None,
     attrsonly: int = 0,
     serverctrls: Optional[List[RequestControl]] = None,
@@ -1046,39 +1046,42 @@ class SimpleLDAPObject:
     timeout: Union[int, float] = -1,
     sizelimit: int = 0,
   ) -> List[Tuple[str, LDAPEntryDict]]:
-    msgid = self.search_ext(base,scope,filterstr,attrlist,attrsonly,serverctrls,clientctrls,timeout,sizelimit)
-    return self.result(msgid,all=1,timeout=timeout)[1]  # type: ignore
+    msgid = self.search_ext(
+      base, scope, filterstr, attrlist, attrsonly, serverctrls, clientctrls,
+      timeout, sizelimit
+    )
+    return self.result(msgid, timeout=timeout)[1]  # type: ignore
 
   def search(
     self,
     base: str,
     scope: int,
-    filterstr: Optional[str] = None,
+    filterstr: Optional[str] = '(objectClass=*)',
     attrlist: Optional[List[str]] = None,
     attrsonly: int = 0,
   ) -> int:
-    return self.search_ext(base,scope,filterstr,attrlist,attrsonly,None,None)
+    return self.search_ext(base, scope, filterstr, attrlist, attrsonly)
 
   def search_s(
     self,
     base: str,
     scope: int,
-    filterstr: Optional[str] = None,
+    filterstr: Optional[str] = '(objectClass=*)',
     attrlist: Optional[List[str]] = None,
     attrsonly: int = 0,
   ) -> List[Tuple[str, LDAPEntryDict]]:
-    return self.search_ext_s(base,scope,filterstr,attrlist,attrsonly,None,None,timeout=self.timeout)
+    return self.search_ext_s(base, scope, filterstr, attrlist, attrsonly)
 
   def search_st(
     self,
     base: str,
     scope: int,
-    filterstr: Optional[str] = None,
+    filterstr: Optional[str] = '(objectClass=*)',
     attrlist: Optional[List[str]] = None,
     attrsonly: int = 0,
     timeout: Union[int, float] = -1,
   ) -> List[Tuple[str, LDAPEntryDict]]:
-    return self.search_ext_s(base,scope,filterstr,attrlist,attrsonly,None,None,timeout)
+    return self.search_ext_s(base, scope, filterstr, attrlist, attrsonly, timeout=timeout)
 
   def start_tls_s(self) -> None:
     """
