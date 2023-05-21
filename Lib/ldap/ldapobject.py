@@ -12,7 +12,8 @@ from ldap.pkginfo import __version__, __author__, __license__
 from ldap.controls import RequestControl, ResponseControl
 
 from ldap_types import *
-from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, Iterable, List, Sequence, TextIO, Tuple, Type, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, Iterable, List
+from typing import Sequence, TextIO, Tuple, Type, cast
 from types import TracebackType
 if TYPE_CHECKING:
   from typing_extensions import Self
@@ -896,8 +897,7 @@ class SimpleLDAPObject:
         If a timeout occurs, a TIMEOUT exception is raised, unless
         polling (timeout = 0), in which case (None, None) is returned.
     """
-    resp_type, resp_data, resp_msgid = self.result2(msgid, all, timeout)
-    return resp_type, resp_data  # type: ignore
+    return self.result2(msgid, all, timeout)[0:2]
 
   def result2(
     self,
@@ -905,8 +905,7 @@ class SimpleLDAPObject:
     all: int = 1,
     timeout: int | None = None,
   ) -> Tuple[int, Sequence[LDAPResult], int] | Tuple[None, None, None]:
-    resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid, all, timeout)
-    return resp_type, resp_data, resp_msgid  # type: ignore
+    return self.result3(msgid, all, timeout)[0:3]
 
   def result3(
     self,
@@ -915,10 +914,7 @@ class SimpleLDAPObject:
     timeout: int | None = None,
     resp_ctrl_classes: Dict[str, Type[ResponseControl]] | None = None,
   ) -> Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]] | Tuple[None, None, None, None]:
-    resp_type, resp_data, resp_msgid, decoded_resp_ctrls, retoid, retval = self.result4(
-      msgid, all, timeout, resp_ctrl_classes=resp_ctrl_classes
-    )
-    return resp_type, resp_data, resp_msgid, decoded_resp_ctrls  # type: ignore
+    return self.result4(msgid, all, timeout, resp_ctrl_classes=resp_ctrl_classes)[0:4]  #type: ignore
 
   def result4(
     self,
