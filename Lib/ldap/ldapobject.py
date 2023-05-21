@@ -696,7 +696,7 @@ class SimpleLDAPObject:
     clientctrls: List[RequestControl] | None = None,
   ) -> Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]] | Tuple[None, None, None, None]:
     msgid = self.modify_ext(dn,modlist,serverctrls,clientctrls)
-    return self.result3(msgid, all=1, timeout=self.timeout)
+    return self.result3(msgid)
 
   def modify(
     self,
@@ -723,14 +723,14 @@ class SimpleLDAPObject:
         The asynchronous modify() returns the message id of the
         initiated request.
     """
-    return self.modify_ext(dn,modlist,None,None)
+    return self.modify_ext(dn, modlist)
 
   def modify_s(
     self,
     dn: str,
     modlist: LDAPModifyModList,
   ) -> None:
-    self.modify_ext_s(dn,modlist,None,None)
+    self.modify_ext_s(dn, modlist)
 
   def modrdn(
     self,
@@ -787,8 +787,7 @@ class SimpleLDAPObject:
   ) -> Tuple[str, bytes | PasswordModifyResponse | None]:
     msgid = self.passwd(user, oldpw, newpw, serverctrls, clientctrls)
     _, _, _, _, respoid, respvalue = self.result4(
-        msgid, all=1, timeout=self.timeout,
-        add_ctrls=1, add_intermediates=1
+        msgid, add_ctrls=1, add_intermediates=1
     )
 
     if respoid != PasswordModifyResponse.responseName:
