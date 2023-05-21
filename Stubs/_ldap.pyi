@@ -273,7 +273,12 @@ class IS_LEAF(ldap.LDAPError):
     errnum: ClassVar[int] = ...
 
 class LDAP:
-    def abandon_ext(self, *args: Any, **kwargs: Any) -> Any: ...
+    def abandon_ext(
+        self,
+        msgid: int,
+        serverctrls: List[LDAPControlTuple] | None,
+        clientctrls: List[LDAPControlTuple] | None,
+    ) -> None: ...
     def add_ext(
         self,
         dn: str,

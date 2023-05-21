@@ -284,10 +284,11 @@ class SimpleLDAPObject:
     sctrls = RequestControlTuples(serverctrls)
     cctrls = RequestControlTuples(clientctrls)
     with self._lock(self._l.abandon_ext, msgid, sctrls, cctrls) as lock:
-      lock.result = self._l.abandon_ext(msgid, sctrls, cctrls)
+      self._l.abandon_ext(msgid, sctrls, cctrls)
+      lock.result = None
 
   def abandon(self, msgid: int) -> None:
-    return self.abandon_ext(msgid,None,None)
+    return self.abandon_ext(msgid)
 
   def cancel(
     self,
