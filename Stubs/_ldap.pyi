@@ -275,7 +275,12 @@ class IS_LEAF(ldap.LDAPError):
 class LDAP:
     def abandon_ext(self, *args: Any, **kwargs: Any) -> Any: ...
     def add_ext(self, *args: Any, **kwargs: Any) -> Any: ...
-    def cancel(self, *args: Any, **kwargs: Any) -> Any: ...
+    def cancel(
+        self,
+        cancelid: int,
+        serverctrls: List[LDAPControlTuple] | None,
+        clientctrls: List[LDAPControlTuple] | None,
+    ) -> int: ...
     def compare_ext(
         self,
         dn: str,
