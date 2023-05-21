@@ -1147,15 +1147,23 @@ class SimpleLDAPObject:
       lock.result = result
       return result
 
-  def get_option(self, option: int) -> Any:
+  def get_option(
+    self,
+    option: int
+  ) -> bool | int | str | bytes | float | Dict[str, int | str | Tuple[str, ...]] | List[ResponseControl]:
     result = None
     with self._lock(self._l.get_option, option) as lock:
       result = self._l.get_option(option)
       lock.result = result
 
-    if option==ldap.OPT_SERVER_CONTROLS or option==ldap.OPT_CLIENT_CONTROLS:
-      return DecodeControlTuples(result)
+    if option == ldap.OPT_SERVER_CONTROLS or option == ldap.OPT_CLIENT_CONTROLS:
+      assert isinstance(result, Iterable)
+      for x in result:
+        assert isinstance(x, tuple)
+      control_tuples = cast(Iterable[LDAPControlTuple], result)
+      return DecodeControlTuples(control_tuples)
     else:
+      assert not isinstance(result, list)
       return result
 
   def set_option(
