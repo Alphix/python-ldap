@@ -388,7 +388,7 @@ class SimpleLDAPObject:
     self,
     dn: str,
     modlist: LDAPAddModList,
-  ) -> Tuple[Any, Any, Any, Any]:
+  ) -> Union[Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]], Tuple[None, None, None, None]]:
     return self.add_ext_s(dn, modlist)
 
   def simple_bind(
