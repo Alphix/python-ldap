@@ -751,7 +751,7 @@ class SimpleLDAPObject:
         This operation is emulated by rename() and rename_s() methods
         since the modrdn2* routines in the C library are deprecated.
     """
-    return self.rename(dn,newrdn,None,delold)
+    return self.rename(dn, newrdn, delold=delold)
 
   def modrdn_s(
     self,
@@ -759,7 +759,7 @@ class SimpleLDAPObject:
     newrdn: str,
     delold: int = 1,
   ) -> None:
-    return self.rename_s(dn,newrdn,None,delold)
+    self.rename_s(dn, newrdn, delold=delold)
 
   def passwd(
     self,
@@ -838,8 +838,8 @@ class SimpleLDAPObject:
     serverctrls: List[RequestControl] | None = None,
     clientctrls: List[RequestControl] | None = None,
   ) -> None:
-    msgid = self.rename(dn,newrdn,newsuperior,delold,serverctrls,clientctrls)
-    resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid,all=1,timeout=self.timeout)
+    msgid = self.rename(dn, newrdn, newsuperior, delold, serverctrls, clientctrls)
+    self.result3(msgid)
 
   def result(
     self,
@@ -1009,6 +1009,7 @@ class SimpleLDAPObject:
     """
     if filterstr is None:
       filterstr = '(objectClass=*)'
+
     sctrls = RequestControlTuples(serverctrls)
     cctrls = RequestControlTuples(clientctrls)
     with self._lock(
