@@ -655,34 +655,35 @@ class SimpleLDAPObject:
     with self._lock(self._l.extop, reqname, reqvalue, sctrls, cctrls) as lock:
       result = self._l.extop(reqname, reqvalue, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def extop_result(
     self,
     msgid: int = ldap.RES_ANY,
     all: int = 1,
     timeout: Optional[Union[int, float]] = None,
-  ) -> Tuple[str, bytes]:
-    # FIXME: The timeout argument isn't used?
-    resulttype,msg,rmsgid,respctrls,respoid,respvalue = self.result4(msgid,all=1,timeout=self.timeout,add_ctrls=1,add_intermediates=1,add_extop=1)
-    return (respoid,respvalue)  # type: ignore
+  ) -> Tuple[Optional[str], Optional[bytes]]:
+    resulttype, msg, rmsgid, respctrls, respoid, respvalue = self.result4(
+      msgid, all=1, timeout=timeout, add_ctrls=1, add_intermediates=1
+    )
+    return respoid, respvalue
 
   def extop_s(
     self,
-    extreq: "ldap.extop.ExtendedRequest",
+    extreq: ldap.extop.ExtendedRequest,
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-    extop_resp_class: Optional[Type["ldap.extop.ExtendedResponse"]] = None,
-  ) -> Union[Tuple[str, bytes], "ldap.extop.ExtendedResponse"]:
-    msgid = self.extop(extreq,serverctrls,clientctrls)
-    res = self.extop_result(msgid,all=1,timeout=self.timeout)
-    if extop_resp_class:
-      respoid,respvalue = res
-      if extop_resp_class.responseName!=respoid:
+    extop_resp_class: Optional[Type[ldap.extop.ExtendedResponse]] = None,
+  ) -> Union[Tuple[Optional[str], Optional[bytes]], ldap.extop.ExtendedResponse]:
+    msgid = self.extop(extreq, serverctrls, clientctrls)
+    res = self.extop_result(msgid)
+    respoid, respvalue = self.extop_result(msgid)
+    if extop_resp_class and respoid is not None and respvalue is not None:
+      if extop_resp_class.responseName != respoid:
         raise ldap.PROTOCOL_ERROR(f"Wrong OID in extended response! Expected {extop_resp_class.responseName}, got {respoid}")
-      return extop_resp_class(extop_resp_class.responseName,respvalue)
+      return extop_resp_class(extop_resp_class.responseName, respvalue)
     else:
-      return res
+      return respoid, respvalue
 
   def modify_ext(
     self,
