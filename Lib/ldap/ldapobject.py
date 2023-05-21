@@ -650,7 +650,7 @@ class SimpleLDAPObject:
     timeout: int | None = None,
   ) -> Tuple[str | None, bytes | None]:
     resulttype, msg, rmsgid, respctrls, respoid, respvalue = self.result4(
-      msgid, all=1, timeout=timeout, add_ctrls=1, add_intermediates=1
+      msgid, all=all, timeout=timeout, add_ctrls=1, add_intermediates=1
     )
     return respoid, respvalue
 
@@ -695,7 +695,7 @@ class SimpleLDAPObject:
     serverctrls: List[RequestControl] | None = None,
     clientctrls: List[RequestControl] | None = None,
   ) -> Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]] | Tuple[None, None, None, None]:
-    msgid = self.modify_ext(dn,modlist,serverctrls,clientctrls)
+    msgid = self.modify_ext(dn, modlist, serverctrls, clientctrls)
     return self.result3(msgid)
 
   def modify(
