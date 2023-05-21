@@ -2,7 +2,7 @@
 
 from typing import Any, ClassVar, Dict, final, List, Optional, Sequence, Union, Tuple
 from ldap.controls import RequestControl
-from ldap.types import LDAPControlTuple, LDAPResult, LDAPModifyModList
+from ldap.types import LDAPControlTuple, LDAPResult, LDAPModifyModList, LDAPAddModList
 import ldap.sasl
 
 __version__: str
@@ -193,7 +193,13 @@ VERSION_MIN: int
 @final
 class LDAP:
     def abandon_ext(self, *args: Any, **kwargs: Any) -> Any: ...
-    def add_ext(self, *args: Any, **kwargs: Any) -> Any: ...
+    def add_ext(
+        self,
+        dn: str,
+        modlist: LDAPAddModList,
+        serverctrls: Optional[List[LDAPControlTuple]],
+        clientctrls: Optional[List[LDAPControlTuple]],
+    ) -> int: ...
     def cancel(
         self,
         cancelid: int,

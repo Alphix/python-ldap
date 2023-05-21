@@ -357,7 +357,7 @@ class SimpleLDAPObject:
     with self._lock(self._l.add_ext, dn, modlist, sctrls, cctrls) as lock:
       result = self._l.add_ext(dn, modlist, sctrls, cctrls)
       lock.result = result
-      return result  # type: ignore
+      return result
 
   def add_ext_s(
     self,
@@ -365,11 +365,9 @@ class SimpleLDAPObject:
     modlist: LDAPAddModList,
     serverctrls: Optional[List[RequestControl]] = None,
     clientctrls: Optional[List[RequestControl]] = None,
-  ) -> Tuple[Any, Any, Any, Any]:
-    # FIXME: The return value could be more specific
-    msgid = self.add_ext(dn,modlist,serverctrls,clientctrls)
-    resp_type, resp_data, resp_msgid, resp_ctrls = self.result3(msgid,all=1,timeout=self.timeout)
-    return resp_type, resp_data, resp_msgid, resp_ctrls
+  ) -> Union[Tuple[int, Sequence[LDAPResult], int, List[ResponseControl]], Tuple[None, None, None, None]]:
+    msgid = self.add_ext(dn, modlist, serverctrls, clientctrls)
+    return self.result3(msgid)
 
   def add(
     self,
@@ -383,14 +381,14 @@ class SimpleLDAPObject:
         The parameter modlist is similar to the one passed to modify(),
         except that no operation integer need be included in the tuples.
     """
-    return self.add_ext(dn,modlist,None,None)
+    return self.add_ext(dn, modlist)
 
   def add_s(
     self,
     dn: str,
     modlist: LDAPAddModList,
   ) -> Tuple[Any, Any, Any, Any]:
-    return self.add_ext_s(dn,modlist,None,None)
+    return self.add_ext_s(dn, modlist)
 
   def simple_bind(
     self,
