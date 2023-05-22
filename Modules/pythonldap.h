@@ -16,6 +16,7 @@
 #include <lber.h>
 #include <ldap.h>
 #include <ldap_features.h>
+#include <stdbool.h>
 
 #if LDAP_VENDOR_VERSION < 20400
 #error Current python-ldap requires OpenLDAP 2.4.x
@@ -118,8 +119,8 @@ PYLDAP_FUNC(LDAPObject *) newLDAPObject(LDAP *);
 
 /* *** messages *** */
 PYLDAP_FUNC(PyObject *)
-LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, int add_ctrls,
-                      int add_intermediates);
+LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, bool add_ctrls,
+                      bool add_intermediates);
 
 /* *** options *** */
 PYLDAP_FUNC(int) LDAP_optionval_by_name(const char *name);

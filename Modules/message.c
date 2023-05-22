@@ -1,7 +1,6 @@
 /* See https://www.python-ldap.org/ for details. */
 
 #include "pythonldap.h"
-#include <stdbool.h>
 
 static int
 process_entry_attribute(LDAP *ld, LDAPMessage *entry, PyObject *attrdict,
@@ -253,10 +252,10 @@ out:
  * For a referral, the 2-tuples contain:
  *   (None, reflist: List[str])
  *
- * If add_ctrls is non-zero, per-entry/referral controls will be added
+ * If add_ctrls is true, per-entry/referral controls will be added
  * as a third item to each of the above tuples.
  *
- * If add_intermediates is non-zero, intermediate/partial results will
+ * If add_intermediates is true, intermediate/partial results will
  * also be included in the returned list, always as 3-tuples:
  *   (oid: str, value: bytes, controls)
  *
@@ -266,83 +265,71 @@ out:
  * The message m is always freed, regardless of return value.
  */
 PyObject *
-LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, int add_ctrls,
-                      int add_intermediates)
+LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, bool add_ctrls,
+                      bool add_intermediates)
 {
-    PyObject *result;
-    LDAPMessage *entry;
+    PyObject *list;
+    PyObject *result = NULL;
 
-    result = PyList_New(0);
-    if (result == NULL) {
-        ldap_msgfree(m);
-        return NULL;
-    }
+    list = PyList_New(0);
+    if (!list)
+        goto out;
 
-    for (entry = ldap_first_entry(ld, m); entry;
+    for (LDAPMessage *entry = ldap_first_entry(ld, m); entry;
          entry = ldap_next_entry(ld, entry)) {
-        PyObject *entrytuple = process_entry(ld, entry, add_ctrls != 0);
-        if (!entrytuple) {
-            Py_DECREF(result);
-            ldap_msgfree(m);
-            return NULL;
-        }
+        PyObject *entrytuple = process_entry(ld, entry, add_ctrls);
+        if (!entrytuple)
+            goto out_list;
 
-        if (PyList_Append(result, entrytuple) < 0) {
+        if (PyList_Append(list, entrytuple) < 0) {
             Py_DECREF(entrytuple);
-            Py_DECREF(result);
-            ldap_msgfree(m);
-            return NULL;
+            goto out_list;
         }
 
         Py_DECREF(entrytuple);
     }
 
-    for (entry = ldap_first_reference(ld, m); entry;
-         entry = ldap_next_reference(ld, entry)) {
-        PyObject *reftuple = process_reference(ld, entry, add_ctrls != 0);
-        if (!reftuple) {
-            Py_DECREF(result);
-            ldap_msgfree(m);
-            return NULL;
-        }
+    for (LDAPMessage *ref = ldap_first_reference(ld, m); ref;
+         ref = ldap_next_reference(ld, ref)) {
+        PyObject *reftuple = process_reference(ld, ref, add_ctrls);
+        if (!reftuple)
+            goto out_list;
 
-        if (PyList_Append(result, reftuple) < 0) {
+        if (PyList_Append(list, reftuple) < 0) {
             Py_DECREF(reftuple);
-            Py_DECREF(result);
-            ldap_msgfree(m);
-            return NULL;
+            goto out_list;
         }
 
         Py_DECREF(reftuple);
     }
 
     if (!add_intermediates)
-        goto out;
+        goto done;
 
-    for (entry = ldap_first_message(ld, m); entry;
-         entry = ldap_next_message(ld, entry)) {
+    for (LDAPMessage *inter = ldap_first_message(ld, m); inter;
+         inter = ldap_next_message(ld, inter)) {
         PyObject *intertuple;
 
-        if (ldap_msgtype(entry) != LDAP_RES_INTERMEDIATE)
+        if (ldap_msgtype(inter) != LDAP_RES_INTERMEDIATE)
             continue;
 
-        intertuple = process_intermediate(ld, entry);
-        if (!intertuple) {
-            Py_DECREF(result);
-            ldap_msgfree(m);
-            return NULL;
-        }
+        intertuple = process_intermediate(ld, inter);
+        if (!intertuple)
+            goto out_list;
 
-        if (PyList_Append(result, intertuple) < 0) {
+        if (PyList_Append(list, intertuple) < 0) {
             Py_DECREF(intertuple);
-            Py_DECREF(result);
-            ldap_msgfree(m);
-            return NULL;
+            goto out_list;
         }
 
         Py_DECREF(intertuple);
     }
 
+done:
+    result = list;
+    list = NULL;
+out_list:
+    Py_XDECREF(list);
 out:
     ldap_msgfree(m);
     return result;
