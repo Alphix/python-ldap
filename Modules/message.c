@@ -134,6 +134,64 @@ out:
     return result;
 }
 
+static PyObject *
+process_reference(LDAP *ld, LDAPMessage *entry, bool add_ctrls)
+{
+    PyObject *reflist;
+    char **refs = NULL;
+    LDAPControl **serverctrls = NULL;
+    PyObject *refstr = NULL;
+    PyObject *pyctrls = NULL;
+    PyObject *result = NULL;
+
+    reflist = PyList_New(0);
+    if (!reflist)
+        goto out;
+
+    if (ldap_parse_reference(ld, entry, &refs, &serverctrls, 0) != LDAP_SUCCESS)
+        goto out_reflist;
+
+    for (int i = 0; refs && refs[i]; i++) {
+        /* A referal is a distinguishedName => unicode */
+        PyObject *refstr = PyUnicode_FromString(refs[i]);
+        if (!refstr)
+            goto out_refs;
+
+        if (PyList_Append(reflist, refstr) < 0)
+            goto out_refstr;
+
+        Py_DECREF(refstr);
+        refstr = NULL;
+    }
+
+    if (add_ctrls) {
+        pyctrls = LDAPControls_to_List(serverctrls);
+        if (!pyctrls) {
+            int err = LDAP_NO_MEMORY;
+            /* FIXME: missing LDAP_BEGIN/END_ALLOW_THREADS? */
+            ldap_set_option(ld, LDAP_OPT_ERROR_NUMBER, &err);
+            LDAPerror(ld);
+            goto out_ctrls;
+        }
+
+        result = Py_BuildValue("(sOO)", NULL, reflist, pyctrls);
+    } else {
+        result = Py_BuildValue("(sO)", NULL, reflist);
+    }
+
+out_ctrls:
+    Py_XDECREF(pyctrls);
+out_refstr:
+    Py_XDECREF(refstr);
+out_refs:
+    ldap_controls_free(serverctrls);
+    ber_memvfree((void **)refs);
+out_reflist:
+    Py_DECREF(reflist);
+out:
+    return result;
+}
+
 /*
  * Converts an LDAP message into a Python structure.
  *
@@ -191,59 +249,25 @@ LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, int add_ctrls,
         Py_DECREF(entrytuple);
     }
 
-    for (entry = ldap_first_reference(ld, m);
-         entry != NULL; entry = ldap_next_reference(ld, entry)) {
-        char **refs = NULL;
-        PyObject *entrytuple;
-        PyObject *reflist = PyList_New(0);
-
-        if (reflist == NULL) {
+    for (entry = ldap_first_reference(ld, m); entry;
+         entry = ldap_next_reference(ld, entry)) {
+        PyObject *reftuple = process_reference(ld, entry, add_ctrls != 0);
+        if (!reftuple) {
             Py_DECREF(result);
             ldap_msgfree(m);
             return NULL;
         }
-        if (ldap_parse_reference(ld, entry, &refs, &serverctrls, 0) !=
-            LDAP_SUCCESS) {
-            Py_DECREF(reflist);
+
+        if (PyList_Append(result, reftuple) < 0) {
+            Py_DECREF(reftuple);
             Py_DECREF(result);
             ldap_msgfree(m);
-            return LDAPerror(ld);
+            return NULL;
         }
-        /* convert serverctrls to list of tuples */
-        if (!(pyctrls = LDAPControls_to_List(serverctrls))) {
-            int err = LDAP_NO_MEMORY;
 
-            ldap_set_option(ld, LDAP_OPT_ERROR_NUMBER, &err);
-            Py_DECREF(reflist);
-            Py_DECREF(result);
-            ldap_msgfree(m);
-            ldap_controls_free(serverctrls);
-            return LDAPerror(ld);
-        }
-        ldap_controls_free(serverctrls);
-        if (refs) {
-            Py_ssize_t i;
-
-            for (i = 0; refs[i] != NULL; i++) {
-                /* A referal is a distinguishedName => unicode */
-                PyObject *refstr = PyUnicode_FromString(refs[i]);
-
-                PyList_Append(reflist, refstr);
-                Py_DECREF(refstr);
-            }
-            ber_memvfree((void **)refs);
-        }
-        if (add_ctrls) {
-            entrytuple = Py_BuildValue("(sOO)", NULL, reflist, pyctrls);
-        }
-        else {
-            entrytuple = Py_BuildValue("(sO)", NULL, reflist);
-        }
-        Py_DECREF(reflist);
-        Py_XDECREF(pyctrls);
-        PyList_Append(result, entrytuple);
-        Py_DECREF(entrytuple);
+        Py_DECREF(reftuple);
     }
+
     if (add_intermediates) {
         for (entry = ldap_first_message(ld, m);
              entry != NULL; entry = ldap_next_message(ld, entry)) {
