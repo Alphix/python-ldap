@@ -197,6 +197,55 @@ out:
     return result;
 }
 
+static PyObject *
+process_intermediate(LDAP *ld, LDAPMessage *entry)
+{
+    char *retoid = NULL;
+    struct berval *retdata = NULL;
+    LDAPControl **serverctrls = NULL;
+    PyObject *pyoid;
+    PyObject *value;
+    PyObject *pyctrls;
+    PyObject *result = NULL;
+
+    if (ldap_parse_intermediate(ld, entry, &retoid, &retdata, &serverctrls, 0)
+        != LDAP_SUCCESS) {
+        LDAPerror(ld);
+        goto out;
+    }
+
+    pyoid = PyUnicode_FromString(retoid);
+    if (!pyoid)
+        goto out_intermediate;
+
+    value = LDAPberval_to_object(retdata);
+    if (!value)
+        goto out_pyoid;
+
+    pyctrls = LDAPControls_to_List(serverctrls);
+    if (!pyctrls) {
+        int err = LDAP_NO_MEMORY;
+        /* FIXME: missing LDAP_BEGIN/END_ALLOW_THREADS? */
+        ldap_set_option(ld, LDAP_OPT_ERROR_NUMBER, &err);
+        LDAPerror(ld);
+        goto out_value;
+    }
+
+    result = Py_BuildValue("(OOO)", pyoid, value, pyctrls);
+
+    Py_DECREF(pyctrls);
+out_value:
+    Py_DECREF(value);
+out_pyoid:
+    Py_DECREF(pyoid);
+out_intermediate:
+    ldap_memfree(retoid);
+    ber_bvfree(retdata);
+    ldap_controls_free(serverctrls);
+out:
+    return result;
+}
+
 /*
  * Converts an LDAP message into a Python structure.
  *
@@ -225,9 +274,8 @@ PyObject *
 LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, int add_ctrls,
                       int add_intermediates)
 {
-    PyObject *result, *pyctrls = NULL;
+    PyObject *result;
     LDAPMessage *entry;
-    LDAPControl **serverctrls = NULL;
 
     result = PyList_New(0);
     if (result == NULL) {
@@ -273,74 +321,34 @@ LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, int add_ctrls,
         Py_DECREF(reftuple);
     }
 
-    if (add_intermediates) {
-        for (entry = ldap_first_message(ld, m);
-             entry != NULL; entry = ldap_next_message(ld, entry)) {
-            /* list of tuples */
-            /* each tuple is OID, Berval, controllist */
-            if (LDAP_RES_INTERMEDIATE == ldap_msgtype(entry)) {
-                PyObject *valtuple;
-                PyObject *valuestr;
-                char *retoid = 0;
-                PyObject *pyoid;
-                struct berval *retdata = 0;
+    if (!add_intermediates)
+        goto out;
 
-                if (ldap_parse_intermediate
-                    (ld, entry, &retoid, &retdata, &serverctrls,
-                     0) != LDAP_SUCCESS) {
-                    Py_DECREF(result);
-                    ldap_msgfree(m);
-                    return LDAPerror(ld);
-                }
-                /* convert serverctrls to list of tuples */
-                if (!(pyctrls = LDAPControls_to_List(serverctrls))) {
-                    int err = LDAP_NO_MEMORY;
+    for (entry = ldap_first_message(ld, m); entry;
+         entry = ldap_next_message(ld, entry)) {
+        PyObject *intertuple;
 
-                    ldap_set_option(ld, LDAP_OPT_ERROR_NUMBER, &err);
-                    Py_DECREF(result);
-                    ldap_msgfree(m);
-                    ldap_controls_free(serverctrls);
-                    ldap_memfree(retoid);
-                    ber_bvfree(retdata);
-                    return LDAPerror(ld);
-                }
-                ldap_controls_free(serverctrls);
+        if (ldap_msgtype(entry) != LDAP_RES_INTERMEDIATE)
+            continue;
 
-                valuestr = LDAPberval_to_object(retdata);
-                ber_bvfree(retdata);
-                if (valuestr == NULL) {
-                    ldap_memfree(retoid);
-                    Py_DECREF(result);
-                    ldap_msgfree(m);
-                    return NULL;
-                }
-
-                pyoid = PyUnicode_FromString(retoid);
-                ldap_memfree(retoid);
-                if (pyoid == NULL) {
-                    Py_DECREF(valuestr);
-                    Py_DECREF(result);
-                    ldap_msgfree(m);
-                    return NULL;
-                }
-
-                valtuple = Py_BuildValue("(NNN)", pyoid, valuestr, pyctrls);
-                if (valtuple == NULL) {
-                    Py_DECREF(result);
-                    ldap_msgfree(m);
-                    return NULL;
-                }
-
-                if (PyList_Append(result, valtuple) == -1) {
-                    Py_DECREF(valtuple);
-                    Py_DECREF(result);
-                    ldap_msgfree(m);
-                    return NULL;
-                }
-                Py_DECREF(valtuple);
-            }
+        intertuple = process_intermediate(ld, entry);
+        if (!intertuple) {
+            Py_DECREF(result);
+            ldap_msgfree(m);
+            return NULL;
         }
+
+        if (PyList_Append(result, intertuple) < 0) {
+            Py_DECREF(intertuple);
+            Py_DECREF(result);
+            ldap_msgfree(m);
+            return NULL;
+        }
+
+        Py_DECREF(intertuple);
     }
+
+out:
     ldap_msgfree(m);
     return result;
 }
