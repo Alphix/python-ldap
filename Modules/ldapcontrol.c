@@ -162,33 +162,43 @@ LDAPControls_from_object(PyObject *list, LDAPControl ***controls_ret)
     return 1;
 }
 
+/*
+ * Parse a list of LDAPControl structs, generate a Python List
+ * with tuples in the form (oid: str, critical: bool, value: bytes)
+ * If no LDAPControls are provided, return an empty list.
+ * On OOM, returns NULL.
+ */
 PyObject *
 LDAPControls_to_List(LDAPControl **ldcs)
 {
-    PyObject *res = 0, *pyctrl;
-    LDAPControl **tmp = ldcs;
-    Py_ssize_t num_ctrls = 0, i;
+    unsigned num_ctrls = 0;
+    PyObject *list;
 
-    if (tmp)
-        while (*tmp++)
-            num_ctrls++;
+    for (LDAPControl **tmp = ldcs; tmp && *tmp; tmp++)
+        num_ctrls++;
 
-    if ((res = PyList_New(num_ctrls)) == NULL) {
-        return NULL;
+    list = PyList_New(num_ctrls);
+    if (!list)
+        goto out;
+
+    for (unsigned i = 0; i < num_ctrls; i++) {
+        PyObject *pyctrl = Py_BuildValue("sbO&",
+                                         ldcs[i]->ldctl_oid,
+                                         ldcs[i]->ldctl_iscritical,
+                                         LDAPberval_to_object,
+                                         &ldcs[i]->ldctl_value);
+        if (!pyctrl)
+            goto out_list;
+
+        PyList_SET_ITEM(list, i, pyctrl);
     }
 
-    for (i = 0; i < num_ctrls; i++) {
-        pyctrl = Py_BuildValue("sbO&",
-                               ldcs[i]->ldctl_oid,
-                               ldcs[i]->ldctl_iscritical,
-                               LDAPberval_to_object, &ldcs[i]->ldctl_value);
-        if (pyctrl == NULL) {
-            Py_DECREF(res);
-            return NULL;
-        }
-        PyList_SET_ITEM(res, i, pyctrl);
-    }
-    return res;
+    return list;
+
+out_list:
+    Py_DECREF(list);
+out:
+    return NULL;
 }
 
 /* --------------- en-/decoders ------------- */

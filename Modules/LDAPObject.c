@@ -1050,7 +1050,6 @@ l_ldap_result4(LDAPObject *self, PyObject *args)
     int res_msgid = 0;
     char *retoid = NULL;
     PyObject *valuestr = NULL;
-    int result = LDAP_SUCCESS;
     LDAPControl **serverctrls = NULL;
 
     if (!PyArg_ParseTuple(args, "|iidii:result4", &msgid, &all, &timeout,
@@ -1099,6 +1098,7 @@ l_ldap_result4(LDAPObject *self, PyObject *args)
     }
     else {
         int rc;
+        int result = LDAP_SUCCESS;
 
         if (res_type == LDAP_RES_EXTENDED) {
             struct berval *retdata = 0;
@@ -1118,14 +1118,23 @@ l_ldap_result4(LDAPObject *self, PyObject *args)
         rc = ldap_parse_result(self->ldap, msg, &result, NULL, NULL, NULL,
                                &serverctrls, 0);
         LDAP_END_ALLOW_THREADS(self);
+
+        if (result != LDAP_SUCCESS) {       /* result error */
+            ldap_controls_free(serverctrls);
+            Py_XDECREF(valuestr);
+            return LDAPraise_for_message(self->ldap, msg);
+        }
     }
 
-    if (result != LDAP_SUCCESS) {       /* result error */
-        ldap_controls_free(serverctrls);
-        Py_XDECREF(valuestr);
-        return LDAPraise_for_message(self->ldap, msg);
-    }
-
+    /*
+     * Create an empty list of controls if res_type is:
+     *     LDAP_RES_SEARCH_ENTRY
+     *     LDAP_RES_SEARCH_REFERENCE
+     *     LDAP_RES_INTERMEDIATE
+     *
+     * Otherwise create a list of control tuples (if any were returned from
+     * ldap_parse_result() above), or an empty list.
+     */
     if (!(pyctrls = LDAPControls_to_List(serverctrls))) {
         int err = LDAP_NO_MEMORY;
 
