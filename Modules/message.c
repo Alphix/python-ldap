@@ -1,6 +1,7 @@
 /* See https://www.python-ldap.org/ for details. */
 
 #include "common.h"
+#include "LDAPObject.h"
 #include "message.h"
 #include "berval.h"
 #include "ldapcontrol.h"
@@ -268,8 +269,8 @@ out:
  *
  * The message m is always freed, regardless of return value.
  */
-PyObject *
-LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, bool add_ctrls,
+static PyObject *
+LDAPmessage_to_Tuples(LDAP *ld, LDAPMessage *m, bool add_ctrls,
                       bool add_intermediates)
 {
     PyObject *list;
@@ -338,3 +339,97 @@ out:
     ldap_msgfree(m);
     return result;
 }
+
+PyObject *
+LDAPmessages_to_python(LDAPObject *lo, LDAPMessage *msg, bool add_ctrls,
+                       bool add_intermediates)
+{
+    int res_type;
+    int res_msgid;
+    char *retoid = NULL;
+    PyObject *retval, *pmsg, *pyctrls = NULL;
+    PyObject *valuestr = NULL;
+    LDAPControl **serverctrls = NULL;
+
+    res_type = ldap_msgtype(msg);
+    res_msgid = ldap_msgid(msg);
+
+    if (res_type == LDAP_RES_SEARCH_ENTRY) {
+        /* LDAPmessage_to_Tuple will parse entries and read the controls for each entry */
+    }
+    else if (res_type == LDAP_RES_SEARCH_REFERENCE) {
+        /* LDAPmessage_to_Tuple will parse refs and read the controls for each res */
+    }
+    else if (res_type == LDAP_RES_INTERMEDIATE) {
+        /* LDAPmessage_to_Tuple will parse intermediates and controls */
+    }
+    else {
+        int rc;
+        int result = LDAP_SUCCESS;
+
+        if (res_type == LDAP_RES_EXTENDED) {
+            struct berval *retdata = 0;
+
+            LDAP_BEGIN_ALLOW_THREADS(lo);
+            rc = ldap_parse_extended_result(lo->ldap, msg, &retoid, &retdata,
+                                            0);
+            LDAP_END_ALLOW_THREADS(lo);
+            /* handle error rc!=0 here? */
+            if (rc == LDAP_SUCCESS) {
+                valuestr = LDAPberval_to_object(retdata);
+            }
+            ber_bvfree(retdata);
+        }
+
+        LDAP_BEGIN_ALLOW_THREADS(lo);
+        rc = ldap_parse_result(lo->ldap, msg, &result, NULL, NULL, NULL,
+                               &serverctrls, 0);
+        LDAP_END_ALLOW_THREADS(lo);
+
+        if (result != LDAP_SUCCESS) {       /* result error */
+            ldap_controls_free(serverctrls);
+            Py_XDECREF(valuestr);
+            return LDAPraise_for_message(lo->ldap, msg);
+        }
+    }
+
+    /*
+     * Create an empty list of controls if res_type is:
+     *     LDAP_RES_SEARCH_ENTRY
+     *     LDAP_RES_SEARCH_REFERENCE
+     *     LDAP_RES_INTERMEDIATE
+     *
+     * Otherwise create a list of control tuples (if any were returned from
+     * ldap_parse_result() above), or an empty list.
+     */
+    if (!(pyctrls = LDAPControls_to_List(serverctrls))) {
+        int err = LDAP_NO_MEMORY;
+
+        LDAP_BEGIN_ALLOW_THREADS(lo);
+        ldap_set_option(lo->ldap, LDAP_OPT_ERROR_NUMBER, &err);
+        LDAP_END_ALLOW_THREADS(lo);
+        ldap_controls_free(serverctrls);
+        ldap_msgfree(msg);
+        Py_XDECREF(valuestr);
+        return LDAPerror(lo->ldap);
+    }
+    ldap_controls_free(serverctrls);
+
+    pmsg = LDAPmessage_to_Tuples(lo->ldap, msg, add_ctrls, add_intermediates);
+
+    if (pmsg == NULL) {
+        retval = NULL;
+    }
+    else {
+        /* s handles NULL, but O does not */
+        retval = Py_BuildValue("(iOiOsO)", res_type, pmsg, res_msgid,
+                               pyctrls, retoid,
+                               valuestr ? valuestr : Py_None);
+        Py_DECREF(pmsg);
+    }
+
+    Py_XDECREF(valuestr);
+    Py_XDECREF(pyctrls);
+    return retval;
+}
+

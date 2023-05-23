@@ -7,7 +7,8 @@
 
 #include "common.h"
 
-extern PyObject *LDAPmessage_to_python(LDAP *ld, LDAPMessage *m, bool add_ctrls,
-                                       bool add_intermediates);
+extern PyObject *
+LDAPmessages_to_python(LDAPObject *lo, LDAPMessage *m, bool add_ctrls,
+                       bool add_intermediates);
 
 #endif /* __h_message_ */

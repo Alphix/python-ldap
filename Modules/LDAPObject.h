@@ -21,17 +21,17 @@ extern LDAPObject *newLDAPObject(LDAP *);
 
 #define LDAP_BEGIN_ALLOW_THREADS( l )                                   \
 	{                                                               \
-	  LDAPObject *lo = (l);                                         \
-	  if (lo->_save != NULL)                                        \
+	  LDAPObject *_lo = (l);                                        \
+	  if (_lo->_save != NULL)                                       \
 	  	Py_FatalError( "saving thread twice?" );                \
-	  lo->_save = PyEval_SaveThread();                              \
+	  _lo->_save = PyEval_SaveThread();                             \
 	}
 
 #define LDAP_END_ALLOW_THREADS( l )                                     \
 	{                                                               \
-	  LDAPObject *lo = (l);                                         \
-	  PyThreadState *_save = lo->_save;                               \
-	  lo->_save = NULL;                                             \
+	  LDAPObject *_lo = (l);                                        \
+	  PyThreadState *_save = _lo->_save;                            \
+	  _lo->_save = NULL;                                            \
 	  PyEval_RestoreThread( _save );                                \
 	}
 
