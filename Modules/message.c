@@ -351,8 +351,18 @@ LDAPmessages_to_python(LDAPObject *lo, LDAPMessage *msg, bool add_ctrls,
     PyObject *valuestr = NULL;
     LDAPControl **serverctrls = NULL;
 
-    res_type = ldap_msgtype(msg);
     res_msgid = ldap_msgid(msg);
+    /*
+     * For most operations, ldap_result will return a single result message,
+     * but for searches it will return a chain of messages, with the last
+     * message being the result message. So we pick the last message in the
+     * chain to determine the proper type (which will also match the return
+     * value of ldap_result().
+     */
+    for (LDAPMessage *tmp = ldap_first_message(lo->ldap, msg); tmp;
+         tmp = ldap_next_message(lo->ldap, tmp)) {
+        res_type = ldap_msgtype(tmp);
+    }
 
     if (res_type == LDAP_RES_SEARCH_ENTRY) {
         /* LDAPmessage_to_Tuple will parse entries and read the controls for each entry */
