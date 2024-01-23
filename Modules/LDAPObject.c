@@ -1039,10 +1039,8 @@ l_ldap_rename(LDAPObject *self, PyObject *args)
     return PyLong_FromLong(msgid);
 }
 
-/* ldap_result4 */
-
 static PyObject *
-l_ldap_result4(LDAPObject *self, PyObject *args)
+l_ldap_results(LDAPObject *self, PyObject *args)
 {
     int req_msgid = LDAP_RES_ANY;
     int all = 1;
@@ -1086,6 +1084,36 @@ l_ldap_result4(LDAPObject *self, PyObject *args)
     }
 
     return LDAPmessages_to_python(self, msgs, add_ctrls, add_intermediates);
+}
+
+/* ldap_result4 */
+
+static PyObject *
+l_ldap_result4(LDAPObject *self, PyObject *args)
+{
+    PyObject *rtuple;
+    PyObject *data;
+    PyObject *result;
+    PyObject *ctrls, *value;
+    PyObject *r = NULL;
+    int type, msgid;
+    char *name;
+
+    rtuple = l_ldap_results(self, args);
+    if (!rtuple)
+        goto out;
+
+    if (!PyArg_ParseTuple(rtuple, "[O, O]:result4", &data, &result))
+        goto out;
+
+    if (!PyArg_ParseTuple(result, "(iiOsO):result4", &type, &msgid, &ctrls, &name, &value))
+        goto out;
+
+    r = Py_BuildValue("(iOiOsO):result4", type, data, msgid, ctrls, name, value);
+
+out:
+    Py_DECREF(rtuple);
+    return r;
 }
 
 /* ldap_search_ext */
