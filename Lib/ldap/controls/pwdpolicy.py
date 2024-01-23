@@ -4,8 +4,6 @@ ldap.controls.pwdpolicy - classes for Password Policy controls
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 __all__ = [
   'PasswordExpiringControl',
   'PasswordExpiredControl',

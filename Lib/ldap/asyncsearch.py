@@ -3,14 +3,22 @@ ldap.asyncsearch - handle async LDAP search operations
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 import ldap
 
 from ldap.pkginfo import __version__
 from ldap.controls import RequestControl
-from typing import Any, Dict as DictType, Iterable, List as ListType, Sequence, TextIO, Tuple
-from ldap_types import *
+from typing import (
+    Any,
+    Dict as DictType,
+    Iterable,
+    List as ListType,
+    Sequence,
+    TextIO,
+    Tuple,
+    Optional,
+    Union,
+)
+from ldap.types import LDAPSearchResult, LDAPEntryDict
 
 import ldif
 
@@ -56,7 +64,7 @@ class AsyncSearchHandler:
 
   def __init__(self, l: ldap.ldapobject.LDAPObject) -> None:
     self._l = l
-    self._msgId: int | None = None
+    self._msgId: Optional[int] = None
     self._afterFirstResult = 1
 
   def startSearch(
@@ -64,12 +72,12 @@ class AsyncSearchHandler:
     searchRoot: str,
     searchScope: int,
     filterStr: str,
-    attrList: ListType[str] | None = None,
+    attrList: Optional[ListType[str]] = None,
     attrsOnly: int = 0,
     timeout: int = -1,
     sizelimit: int = 0,
-    serverctrls: ListType[RequestControl] | None = None,
-    clientctrls: ListType[RequestControl] | None = None,
+    serverctrls: Optional[ListType[RequestControl]] = None,
+    clientctrls: Optional[ListType[RequestControl]] = None,
   ) -> None:
     """
     searchRoot
@@ -237,7 +245,7 @@ class IndexedDict(Dict):
   def __init__(
     self,
     l: ldap.ldapobject.LDAPObject,
-    indexed_attrs: Sequence[str] | None = None,
+    indexed_attrs: Optional[Sequence[str]] = None,
   ) -> None:
     Dict.__init__(self,l)
     self.indexed_attrs = indexed_attrs or ()
@@ -314,7 +322,7 @@ class LDIFWriter(FileWriter):
   def __init__(
     self,
     l: ldap.ldapobject.LDAPObject,
-    writer_obj: TextIO | ldif.LDIFWriter,
+    writer_obj: Union[TextIO, ldif.LDIFWriter],
     headerStr: str = '',
     footerStr: str = '',
   ) -> None:

@@ -4,8 +4,6 @@ by OpenLDAP functions
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 from ldap.pkginfo import __version__
 
 import _ldap
@@ -15,6 +13,8 @@ assert _ldap.__version__==__version__, \
 import ldap
 
 from ldap.controls import RequestControl,LDAPControl,KNOWN_RESPONSE_CONTROLS
+
+from typing import Optional, Union
 
 
 class AssertionControl(RequestControl):
@@ -80,8 +80,8 @@ class SimplePagedResultsControl(LDAPControl):
   def __init__(
     self,
     criticality: bool = False,
-    size: int | None = None,
-    cookie: str | bytes | None = None
+    size: Optional[int] = None,
+    cookie: Optional[Union[str, bytes]] = None
   ) -> None:
     self.criticality = criticality
     self.size,self.cookie = size,cookie

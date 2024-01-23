@@ -3,16 +3,10 @@ ldap.schema.tokenizer - Low-level parsing functions for schema element strings
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 import re
 
-from typing import Dict, List, Tuple
-from ldap_types import *
-
-from typing import TYPE_CHECKING, Mapping, Tuple
-if TYPE_CHECKING:
-    from typing_extensions import TypeAlias
+from typing import Dict, List, Tuple, Mapping, Union
+from typing_extensions import TypeAlias
 
 LDAPTokenDictValue: TypeAlias = "Tuple[()] | Tuple[str, ...]"
 """The kind of values which may be found in a token dict."""
@@ -110,7 +104,7 @@ def parse_tokens(
 
         if next_token in known_tokens:
             # non-valued
-            value: Tuple[()] | Tuple[str, ...] = (())
+            value: Union[Tuple[()], Tuple[str, ...]] = (())
 
         elif next_token == "(":
             # multi-valued

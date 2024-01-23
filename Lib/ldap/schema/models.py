@@ -3,20 +3,30 @@ schema.py - support for subSchemaSubEntry information
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 import sys
 
 import collections
-import ldap.cidict
+from ldap.cidict import cidict
 from collections import UserDict
 
 from ldap.schema.tokenizer import parse_tokens, split_tokens
 
-from typing import TYPE_CHECKING, Dict, Iterable, KeysView, List, Tuple, MutableMapping
-from ldap_types import *
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Iterable,
+    KeysView,
+    List,
+    Tuple,
+    MutableMapping,
+    Optional,
+    Union,
+)
+
+from ldap.types import LDAPEntryDict
 if TYPE_CHECKING:
     EntryBase = UserDict[str, List[bytes]]
+    import ldap.schema.subentry
 else:
     # Python <= 3.8 compatibility
     EntryBase = UserDict
@@ -67,7 +77,7 @@ class SchemaElement:
   schema_attribute = 'SchemaElement (base class)'
   known_tokens = ['DESC', 'NAME']
 
-  def __init__(self, schema_element_str: str | bytes | None = None) -> None:
+  def __init__(self, schema_element_str: Optional[Union[str, bytes]] = None) -> None:
     if isinstance(schema_element_str, bytes):
       schema_element_string = schema_element_str.decode('utf-8')
     elif isinstance(schema_element_str, str):
@@ -95,7 +105,7 @@ class SchemaElement:
   def get_id(self) -> str:
     return self.oid
 
-  def key_attr(self, key: str, value: str | None, quoted: int = 0) -> str:
+  def key_attr(self, key: str, value: Optional[str], quoted: int = 0) -> str:
     if value is None:
       return ""
     elif not isinstance(value, str):
@@ -218,7 +228,7 @@ class ObjectClass(SchemaElement):
 SCHEMA_CLASS_MAPPING[ObjectClass.schema_attribute] = ObjectClass
 SCHEMA_ATTR_MAPPING[ObjectClass] = ObjectClass.schema_attribute
 
-AttributeUsage = ldap.cidict.cidict({
+AttributeUsage = cidict({
   'userApplication':0, # work-around for non-compliant schema
   'userApplications':0,
   'directoryOperation':1,
@@ -702,7 +712,7 @@ class Entry(EntryBase):
   the OID as key.
   """
 
-  def __init__(self, schema: ldap.schema.subentry.SubSchema, dn: str, entry: LDAPEntryDict) -> None:
+  def __init__(self, schema: "ldap.schema.subentry.SubSchema", dn: str, entry: LDAPEntryDict) -> None:
     self._keytuple2attrtype: Dict[Tuple[str, ...], str] = {}
     self._attrtype2keytuple: Dict[str, Tuple[str, ...]] = {}
     # This class wants to act like it's a string-keyed dict, but under the
@@ -768,17 +778,17 @@ class Entry(EntryBase):
   def keys(self) -> List[str]:  # type: ignore
     return self._keytuple2attrtype.values()  # type: ignore
 
-  def items(self) -> Tuple[str, List[bytes]]:  # type: ignore
+  def items(self) -> List[Tuple[str, List[bytes]]]:  # type: ignore
     return [
       (k,self[k])
       for k in self.keys()
-    ]  # type: ignore
+    ]
 
   def attribute_types(
     self,
-    attr_type_filter: List[Tuple[str, List[str]]] | None = None,
+    attr_type_filter: Optional[List[Tuple[str, List[str]]]] = None,
     raise_keyerror: int = 1,
-  ) -> Tuple[ldap.cidict.cidict[AttributeType | None], ldap.cidict.cidict[AttributeType | None]]:
+  ) -> Tuple[cidict[Optional[AttributeType]], cidict[Optional[AttributeType]]]:
     """
     Convenience wrapper around SubSchema.attribute_types() which
     passes object classes of this particular entry as argument to

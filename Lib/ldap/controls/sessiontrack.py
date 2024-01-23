@@ -4,8 +4,6 @@ ldap.controls.sessiontrack - class for session tracking control
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 from ldap.controls import RequestControl
 
 from pyasn1.type import namedtype,univ

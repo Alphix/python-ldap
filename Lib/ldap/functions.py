@@ -3,8 +3,6 @@ functions.py - wraps functions of module _ldap
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 from ldap.pkginfo import __version__
 
 __all__ = [
@@ -24,7 +22,7 @@ from ldap.dn import explode_dn,explode_rdn
 
 from ldap.ldapobject import LDAPObject
 
-from typing import Any, BinaryIO, Callable, TextIO
+from typing import Any, BinaryIO, Callable, TextIO, Optional, Union
 
 
 if __debug__:
@@ -33,7 +31,7 @@ if __debug__:
 
 
 def _ldap_function_call(
-    lock: ldap.LDAPLock | None,
+    lock: Optional[ldap.LDAPLock],
     func: Callable[..., Any],
     *args: Any,
     **kwargs: Any,
@@ -76,8 +74,8 @@ def initialize(
     trace_level: int = 0,
     trace_file: TextIO = sys.stdout,
     trace_stack_limit: int = 5,
-    bytes_mode: Any | None = None,
-    fileno: int | BinaryIO | None = None,
+    bytes_mode: Optional[Any] = None,
+    fileno: Optional[Union[int, BinaryIO]] = None,
     **kwargs: Any,
 ) -> LDAPObject:
   """

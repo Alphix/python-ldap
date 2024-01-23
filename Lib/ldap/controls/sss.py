@@ -4,8 +4,6 @@ ldap.controls.sss - classes for Server Side Sorting
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 __all__ = [
     'SSSRequestControl',
     'SSSResponseControl',
@@ -22,7 +20,7 @@ from ldap.controls import (RequestControl, ResponseControl,
 from pyasn1.type import univ, namedtype, tag, namedval, constraint
 from pyasn1.codec.ber import encoder, decoder
 
-from typing import List
+from typing import List, Union
 
 #    SortKeyList ::= SEQUENCE OF SEQUENCE {
 #                     attributeType   AttributeDescription,
@@ -56,7 +54,7 @@ class SSSRequestControl(RequestControl):
     def __init__(
         self,
         criticality: bool = False,
-        ordering_rules: List[str] | str = [],
+        ordering_rules: Union[List[str], str] = [],
     ):
         RequestControl.__init__(self,self.controlType,criticality)
         self.ordering_rules = ordering_rules

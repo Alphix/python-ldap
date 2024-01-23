@@ -6,13 +6,11 @@ See https://www.python-ldap.org/ for details.
 Compatibility:
 - Tested with Python 2.0+
 """
-from __future__ import annotations
-
 from ldap.pkginfo import __version__
 
 from ldap.functions import strf_secs
 
-from typing import Iterable
+from typing import Iterable, Optional, Union
 
 import time
 
@@ -62,8 +60,8 @@ def filter_format(filter_template: str, assertion_values: Iterable[str]) -> str:
 
 def time_span_filter(
         filterstr: str = '',
-        from_timestamp: int | float = 0,
-        until_timestamp: int | float | None = None,
+        from_timestamp: Union[int, float] = 0,
+        until_timestamp: Optional[Union[int, float]] = None,
         delta_attr: str = 'modifyTimestamp',
     ) -> str:
     """

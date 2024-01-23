@@ -3,8 +3,6 @@ ldap.schema.subentry -  subschema subentry handling
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 import copy
 from urllib.request import urlopen
 
@@ -14,15 +12,27 @@ from ldap.cidict import cidict
 import ldapurl
 import ldif
 
-from ldap_types import *
-from typing import Any, Dict, Iterable, List, MutableMapping, Set, Tuple, Type, TypeVar
+from ldap.types import LDAPEntryDict
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    MutableMapping,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Optional,
+    Union,
+)
 
 # Maps schema element description (from class.schema_attribute,
 # e.g. 'ObjectClass') to the schema class.
-SCHEMA_CLASS_MAPPING: cidict[Type[SchemaElement]] = cidict()
+SCHEMA_CLASS_MAPPING: cidict[Type["SchemaElement"]] = cidict()
 
 # The reverse of SCHEMA_CLASS_MAPPING
-SCHEMA_ATTR_MAPPING: Dict[Type[SchemaElement], str] = {}
+SCHEMA_ATTR_MAPPING: Dict[Type["SchemaElement"], str] = {}
 
 from ldap.schema.models import *
 from ldap.schema.models import SchemaElement
@@ -178,7 +188,7 @@ class SubSchema:
   def listall(
     self,
     schema_element_class: Type[SchemaElement],
-    schema_element_filters: Iterable[Tuple[str, Iterable[str | int]]] | None = None,
+    schema_element_filters: Optional[Iterable[Tuple[str, Iterable[Union[str, int]]]]] = None,
   ) -> List[str]:
     """
     Returns a list of OIDs of all available schema
@@ -212,8 +222,8 @@ class SubSchema:
 
   def tree(
     self,
-    schema_element_class: Type[ObjectClass] | Type[AttributeType],
-    schema_element_filters: Iterable[Tuple[str, Iterable[str | int]]] | None = None,
+    schema_element_class: Union[Type[ObjectClass], Type[AttributeType]],
+    schema_element_filters: Optional[Iterable[Tuple[str, Iterable[Union[str, int]]]]] = None,
   ) -> cidict[List[str]]:
     """
     Returns a ldap.cidict.cidict dictionary representing the
@@ -318,9 +328,9 @@ class SubSchema:
     self,
     se_class: Type[SchemaElementSubclass],
     nameoroid: str,
-    default: SchemaElementSubclass | None = None,
+    default: Optional[SchemaElementSubclass] = None,
     raise_keyerror: int = 0,
-  ) -> SchemaElementSubclass | None:
+  ) -> Optional[SchemaElementSubclass]:
     """
     Get a schema element by name or OID
     """
@@ -345,8 +355,8 @@ class SubSchema:
     self,
     se_class: Type[SchemaElementSubclass],
     nameoroid: str,
-    inherited: List[str] | None = None,
-  ) -> SchemaElementSubclass | None:
+    inherited: Optional[List[str]] = None,
+  ) -> Optional[SchemaElementSubclass]:
     """
     Get a schema element by name or OID with all class attributes
     set including inherited class attributes
@@ -362,7 +372,7 @@ class SubSchema:
     return se
 
 
-  def get_syntax(self, nameoroid: str) -> str | None:
+  def get_syntax(self, nameoroid: str) -> Optional[str]:
     """
     Get the syntax of an attribute type specified by name or OID
     """
@@ -378,7 +388,7 @@ class SubSchema:
       return at_obj.syntax
 
 
-  def get_structural_oc(self, oc_list: Iterable[str]) -> str | None:
+  def get_structural_oc(self, oc_list: Iterable[str]) -> Optional[str]:
     """
     Returns OID of structural object class in oc_list
     if any is present. Returns None else.
@@ -423,10 +433,10 @@ class SubSchema:
   def attribute_types(
     self,
     object_class_list: Iterable[str],
-    attr_type_filter: Iterable[Tuple[str, Iterable[str | int]]] | None = None,
+    attr_type_filter: Optional[Iterable[Tuple[str, Iterable[Union[str, int]]]]] = None,
     raise_keyerror: int = 1,
     ignore_dit_content_rule: int = 0,
-  ) -> Tuple[cidict[AttributeType | None], cidict[AttributeType | None]]:
+  ) -> Tuple[cidict[Optional[AttributeType]], cidict[Optional[AttributeType]]]:
     """
     Returns a 2-tuple of all must and may attributes including
     all inherited attributes of superior object classes
@@ -457,8 +467,8 @@ class SubSchema:
     # Initialize
     oid_cache: Dict[str, None] = {}
 
-    r_must: cidict[ldap.schema.models.AttributeType | None] = ldap.cidict.cidict()
-    r_may: cidict[ldap.schema.models.AttributeType | None] = ldap.cidict.cidict()
+    r_must: cidict[Optional[ldap.schema.models.AttributeType]] = ldap.cidict.cidict()
+    r_may: cidict[Optional[ldap.schema.models.AttributeType]] = ldap.cidict.cidict()
 
     if '1.3.6.1.4.1.1466.101.120.111' in object_class_oids:
       # Object class 'extensibleObject' MAY carry every attribute type
@@ -553,7 +563,7 @@ class SubSchema:
 def urlfetch(
     uri: str,
     trace_level: int = 0,
-  ) -> Tuple[str | None, SubSchema | None]:
+  ) -> Tuple[Optional[str], Optional[SubSchema]]:
   """
   Fetches a parsed schema entry by uri.
 

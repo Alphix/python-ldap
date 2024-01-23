@@ -3,15 +3,13 @@ ldap.controls.openldap - classes for OpenLDAP-specific controls
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 import ldap.controls
 from ldap.controls import ValueLessRequestControl,ResponseControl
 
 from pyasn1.type import univ
 from pyasn1.codec.ber import decoder
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 __all__ = [
   'SearchNoOpControl',
@@ -58,7 +56,7 @@ class SearchNoOpMixIn(ldap.ldapobject.SimpleLDAPObject):
     scope: int = ldap.SCOPE_SUBTREE,
     filterstr: str = '(objectClass=*)',
     timeout: int = -1,
-  ) -> Tuple[int, int] | Tuple[None, None]:
+  ) -> Union[Tuple[int, int], Tuple[None, None]]:
     try:
       msg_id = self.search_ext(
         base,

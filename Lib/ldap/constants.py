@@ -9,9 +9,7 @@ The information serves two purposes:
 - Provide support for building documentation without compiling python-ldap
 
 """
-from __future__ import annotations
-
-from typing import Any, List, Sequence
+from typing import Any, List, Sequence, Optional
 
 # This module cannot import anything from ldap.
 # When building documentation, it is used to initialize ldap.__init__.
@@ -21,14 +19,14 @@ class Constant:
     """Base class for a definition of an OpenLDAP constant
     """
 
-    c_template: str | None = None
+    c_template: Optional[str] = None
 
     def __init__(
         self,
         name: str,
         optional: bool = False,
         requirements: Sequence[str] = (),
-        doc: str | None = None,
+        doc: Optional[str] = None,
     ) -> None:
         self.name = name
         if optional:

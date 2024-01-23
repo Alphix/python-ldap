@@ -3,8 +3,6 @@ ldap.syncrepl - for implementing syncrepl consumer (see RFC 4533)
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 from uuid import UUID
 
 # Imports from pyasn1
@@ -15,8 +13,8 @@ from ldap.pkginfo import __version__, __author__, __license__
 from ldap.controls import RequestControl, ResponseControl, KNOWN_RESPONSE_CONTROLS
 import ldap
 
-from ldap_types import *
-from typing import Any, Dict, List, Type, Tuple
+from ldap.types import LDAPEntryDict
+from typing import Any, Dict, List, Type, Tuple, Optional, Union
 
 __all__ = [
     'SyncreplConsumer',
@@ -86,8 +84,8 @@ class SyncRequestControl(RequestControl):
 
     def __init__(
         self,
-        criticality: int | bool = True,
-        cookie: str | None = None,
+        criticality: Union[int, bool] = True,
+        cookie: Optional[str] = None,
         mode: str = 'refreshOnly',
         reloadHint: bool = False,
     ) -> None:
@@ -166,7 +164,7 @@ class SyncStateControl(ResponseControl):
         uuid = UUID(bytes=bytes(d[0].getComponentByName('entryUUID')))
         cookie = d[0].getComponentByName('cookie')
         if cookie is not None and cookie.hasValue():
-            self.cookie: str | None = str(cookie)
+            self.cookie: Optional[str] = str(cookie)
         else:
             self.cookie = None
         self.state = self.__class__.opnames[int(state)]
@@ -204,7 +202,7 @@ class SyncDoneControl(ResponseControl):
         d = decoder.decode(encodedControlValue, asn1Spec=SyncDoneValue())
         cookie = d[0].getComponentByName('cookie')
         if cookie.hasValue():
-            self.cookie: str | None = str(cookie)
+            self.cookie: Optional[str] = str(cookie)
         else:
             self.cookie = None
         refresh_deletes = d[0].getComponentByName('refreshDeletes')
@@ -338,7 +336,7 @@ class SyncInfoMessage:
                 self.newcookie = str(comp)
                 return
 
-            val: Dict[str, str | bool | List[str]] = {}
+            val: Dict[str, Union[str, bool, List[str]]] = {}
 
             cookie = comp.getComponentByName('cookie')
             if cookie.hasValue():
@@ -369,7 +367,7 @@ class SyncreplConsumer():
         base: str,
         scope: int,
         mode: str = 'refreshOnly',
-        cookie: str | None = None,
+        cookie: Optional[str] = None,
         **search_args: Any,
     ) -> int:
         """
@@ -412,7 +410,7 @@ class SyncreplConsumer():
     def syncrepl_poll(
         self,
         msgid: int = -1,
-        timeout: int | None = None,
+        timeout: Optional[int] = None,
         all: int = 0,
     ) -> bool:
         """
@@ -521,7 +519,7 @@ class SyncreplConsumer():
 
     def syncrepl_present(
         self,
-        uuids: List[str] | None,
+        uuids: Optional[List[str]],
         refreshDeletes: bool = False,
     ) -> None:
         """

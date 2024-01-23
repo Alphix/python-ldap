@@ -8,11 +8,9 @@ The ldap.extop module provides base classes for LDAPv3 extended operations.
 Each class provides support for a certain extended operation request and
 response.
 """
-from __future__ import annotations
-
 from ldap.pkginfo import __version__
 
-from typing import Any
+from typing import Any, Optional
 
 
 __all__ = [
@@ -62,7 +60,7 @@ class ExtendedResponse:
 
   def __init__(
     self,
-    responseName: str | None,
+    responseName: Optional[str],
     encodedResponseValue: bytes
   ) -> None:
     self.responseName = responseName

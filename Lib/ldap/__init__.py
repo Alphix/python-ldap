@@ -3,8 +3,6 @@ ldap - base module
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 # This is also the overall release version number
 
 from ldap.pkginfo import __version__, __author__, __license__
@@ -12,7 +10,7 @@ from ldap.pkginfo import __version__, __author__, __license__
 import os
 import sys
 
-from typing import Any, Type
+from typing import Any, Type, Optional, Union
 
 
 if __debug__:
@@ -63,7 +61,7 @@ try:
   # FIXME: This can be simplified, from Python 3.7 this module is mandatory
   import threading
 except ImportError:
-  LDAPLockBaseClass: Type[DummyLock] | Type[threading.Lock] = DummyLock
+  LDAPLockBaseClass: Union[Type[DummyLock], Type[threading.Lock]] = DummyLock
 else:
   LDAPLockBaseClass = threading.Lock
 
@@ -78,7 +76,7 @@ class LDAPLock:
 
   def __init__(
     self,
-    lock_class: Type[Any] | None = None,
+    lock_class: Optional[Type[Any]] = None,
     desc: str = ''
   ) -> None:
     """

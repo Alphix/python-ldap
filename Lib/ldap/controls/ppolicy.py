@@ -4,8 +4,6 @@ ldap.controls.ppolicy - classes for Password Policy controls
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 __all__ = [
   'PasswordPolicyControl'
 ]
@@ -18,6 +16,8 @@ from ldap.controls import (
 # Imports from pyasn1
 from pyasn1.type import tag,namedtype,namedval,univ,constraint
 from pyasn1.codec.der import decoder
+
+from typing import Optional
 
 
 class PasswordPolicyWarning(univ.Choice):  # type: ignore
@@ -70,22 +70,22 @@ class PasswordPolicyControl(ValueLessRequestControl,ResponseControl):
   Attributes
   ----------
 
-  timeBeforeExpiration : int | None
+  timeBeforeExpiration : Optional[int]
       The time before the password expires.
 
-  graceAuthNsRemaining : int | None
+  graceAuthNsRemaining : Optional[int]
       The number of grace authentications remaining.
 
-  error: int | None
+  error: Optional[int]
       The password and authentication errors.
   """
   controlType = '1.3.6.1.4.1.42.2.27.8.5.1'
 
   def __init__(self, criticality: bool = False) -> None:
     self.criticality = criticality
-    self.timeBeforeExpiration: int | None = None
-    self.graceAuthNsRemaining: int | None = None
-    self.error: int | None = None
+    self.timeBeforeExpiration: Optional[int] = None
+    self.graceAuthNsRemaining: Optional[int] = None
+    self.error: Optional[int] = None
 
   def decodeControlValue(self, encodedControlValue: bytes) -> None:
     ppolicyValue,_ = decoder.decode(encodedControlValue,asn1Spec=PasswordPolicyResponseValue())

@@ -4,8 +4,6 @@ ldap.controls.paged - classes for Simple Paged control
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 __all__ = [
   'SimplePagedResultsControl'
 ]
@@ -18,6 +16,8 @@ from ldap.controls import RequestControl,ResponseControl,KNOWN_RESPONSE_CONTROLS
 from pyasn1.type import tag,namedtype,univ,constraint
 from pyasn1.codec.ber import encoder,decoder
 from pyasn1_modules.rfc2251 import LDAPString
+
+from typing import Union
 
 
 class PagedResultsControlValue(univ.Sequence):  # type: ignore
@@ -35,7 +35,7 @@ class SimplePagedResultsControl(RequestControl,ResponseControl):
     self,
     criticality: bool = False,
     size: int = 10,
-    cookie: str | bytes = '',
+    cookie: Union[str, bytes] = '',
   ) -> None:
     self.criticality = criticality
     self.size = size

@@ -3,8 +3,6 @@ slapdtest - module for spawning test instances of OpenLDAP's slapd server
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 import os
 import socket
 import sys
@@ -17,10 +15,9 @@ import unittest
 from shutil import which
 from urllib.parse import quote_plus
 
-from typing import TYPE_CHECKING, Any, Callable, Iterable, List, Optional, Type, TypeVar, Tuple
+from typing import Any, Callable, Iterable, List, Optional, Type, TypeVar, Tuple
 from types import TracebackType
-if TYPE_CHECKING:
-    from typing_extensions import Self
+from typing_extensions import Self
 
 # Switch off processing .ldaprc or ldap.conf before importing _ldap
 os.environ['LDAPNOINIT'] = '1'
@@ -76,7 +73,7 @@ def identity(test_item: T) -> T:
     return test_item
 
 
-def skip_unless_ci(reason: str, feature: str | None = None) -> Callable[..., Any]:
+def skip_unless_ci(reason: str, feature: Optional[str] = None) -> Callable[..., Any]:
     """Skip test unless test case is executed on CI like Travis CI
     """
     if not os.environ.get('CI', False):
@@ -220,7 +217,7 @@ class SlapdObject:
     _log = combined_logger('python-ldap-test')
 
     def __init__(self) -> None:
-        self._proc: subprocess.Popen[bytes] | None = None
+        self._proc: Optional[subprocess.Popen[bytes]] = None
         self._port = self._avail_tcp_port()
         self.server_id = self._port % 4096
         self.testrundir = os.path.join(self.TMPDIR, 'python-ldap-test-%d' % self._port)
@@ -229,7 +226,7 @@ class SlapdObject:
         self.ldap_uri = "ldap://%s:%d/" % (self.local_host, self._port)
         if HAVE_LDAPI:
             ldapi_path = os.path.join(self.testrundir, 'ldapi')
-            self.ldapi_uri: str | None = "ldapi://%s" % quote_plus(ldapi_path)
+            self.ldapi_uri: Optional[str] = "ldapi://%s" % quote_plus(ldapi_path)
             self.default_ldap_uri = self.ldapi_uri
             # use SASL/EXTERNAL via LDAPI when invoking OpenLDAP CLI tools
             self.cli_sasl_external = ldap.SASL_AVAIL
@@ -516,9 +513,9 @@ class SlapdObject:
     def _cli_popen(
         self,
         ldapcommand: str,
-        extra_args: List[str] | None = None,
-        ldap_uri: str | None = None,
-        stdin_data: bytes | None = None,
+        extra_args: Optional[List[str]] = None,
+        ldap_uri: Optional[str] = None,
+        stdin_data: Optional[bytes] = None,
     ) -> Tuple[bytes, bytes]:  # pragma: no cover
         if ldap_uri is None:
             ldap_uri = self.default_ldap_uri
@@ -549,20 +546,20 @@ class SlapdObject:
             )
         return stdout_data, stderr_data
 
-    def ldapwhoami(self, extra_args: List[str] | None = None) -> None:
+    def ldapwhoami(self, extra_args: Optional[List[str]] = None) -> None:
         """
         Runs ldapwhoami on this slapd instance
         """
         self._cli_popen(self.PATH_LDAPWHOAMI, extra_args=extra_args)
 
-    def ldapadd(self, ldif: str, extra_args: List[str] | None = None) -> None:
+    def ldapadd(self, ldif: str, extra_args: Optional[List[str]] = None) -> None:
         """
         Runs ldapadd on this slapd instance, passing it the ldif content
         """
         self._cli_popen(self.PATH_LDAPADD, extra_args=extra_args,
                         stdin_data=ldif.encode('utf-8'))
 
-    def ldapmodify(self, ldif: str, extra_args: List[str] | None = None) -> None:
+    def ldapmodify(self, ldif: str, extra_args: Optional[List[str]] = None) -> None:
         """
         Runs ldapadd on this slapd instance, passing it the ldif content
         """
@@ -573,7 +570,7 @@ class SlapdObject:
         self,
         dn: str,
         recursive: bool = False,
-        extra_args: List[str] | None = None
+        extra_args: Optional[List[str]] = None
     ) -> None:
         """
         Runs ldapdelete on this slapd instance, deleting 'dn'
@@ -587,8 +584,8 @@ class SlapdObject:
 
     def slapadd(
         self,
-        ldif: str | None,
-        extra_args: List[str] | None = None
+        ldif: Optional[str],
+        extra_args: Optional[List[str]] = None
     ) -> None:
         """
         Runs slapadd on this slapd instance, passing it the ldif content
@@ -623,8 +620,8 @@ class SlapdTestCase(unittest.TestCase):
 
     def _open_ldap_conn(
         self,
-        who: str | None = None,
-        cred: str | None = None,
+        who: Optional[str] = None,
+        cred: Optional[str] = None,
         **kwargs: Any,
     ) -> ldap.ldapobject.LDAPObject:
         """

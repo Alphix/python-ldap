@@ -4,8 +4,6 @@ ldap.controls.vlv - classes for Virtual List View
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 __all__ = [
   'VLVRequestControl',
   'VLVResponseControl',
@@ -18,6 +16,8 @@ from ldap.controls import (RequestControl, ResponseControl,
 
 from pyasn1.type import univ, namedtype, tag, namedval, constraint
 from pyasn1.codec.ber import encoder, decoder
+
+from typing import Optional
 
 
 class ByOffsetType(univ.Sequence):  # type: ignore
@@ -52,10 +52,10 @@ class VLVRequestControl(RequestControl):
         criticality: bool = False,
         before_count: int = 0,
         after_count: int = 0,
-        offset: int | None = None,
-        content_count: int | None = None,
-        greater_than_or_equal: str | None = None,
-        context_id: str | None = None,
+        offset: Optional[int] = None,
+        content_count: Optional[int] = None,
+        greater_than_or_equal: Optional[str] = None,
+        context_id: Optional[str] = None,
     ):
         RequestControl.__init__(self,self.controlType,criticality)
         assert (offset is not None and content_count is not None) or \
@@ -132,7 +132,7 @@ class VLVResponseControl(ResponseControl):
         self.virtualListViewResult = int(virtual_list_view_result)
         context_id = p.getComponentByName('contextID')
         if context_id.hasValue():
-            self.contextID: str | None = str(context_id)
+            self.contextID: Optional[str] = str(context_id)
         else:
             self.contextID = None
         # backward compatibility class attributes

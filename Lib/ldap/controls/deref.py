@@ -4,8 +4,6 @@ ldap.controls.deref - classes for
 
 See https://www.python-ldap.org/ for project details.
 """
-from __future__ import annotations
-
 __all__ = [
   'DEREF_CONTROL_OID',
   'DereferenceControl',
@@ -19,7 +17,7 @@ from pyasn1.type import namedtype,univ,tag
 from pyasn1.codec.ber import encoder,decoder
 from pyasn1_modules.rfc2251 import LDAPDN,AttributeDescription,AttributeDescriptionList,AttributeValue
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 DEREF_CONTROL_OID = '1.3.6.1.4.1.4203.666.5.16'
 
@@ -85,7 +83,7 @@ class DereferenceControl(LDAPControl):
   def __init__(
     self,
     criticality: bool = False,
-    derefSpecs: Dict[str, List[str]] | None = None,
+    derefSpecs: Optional[Dict[str, List[str]]] = None,
   ) -> None:
     LDAPControl.__init__(self,self.controlType,criticality)
     self.derefSpecs = derefSpecs or {}

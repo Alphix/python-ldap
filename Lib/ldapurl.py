@@ -3,14 +3,10 @@ ldapurl - handling of LDAP URLs as described in RFC 4516
 
 See https://www.python-ldap.org/ for details.
 """
-from __future__ import annotations
-
 from collections.abc import MutableMapping
 from urllib.parse import quote, unquote
 
-from typing import Dict, Iterator, List, TYPE_CHECKING
-if TYPE_CHECKING:
-  from typing_extensions import Self
+from typing import Dict, Iterator, List, Optional, TYPE_CHECKING
 
 __version__ = '3.4.4'
 
@@ -75,10 +71,10 @@ class LDAPUrlExtension:
 
   def __init__(
     self,
-    extensionStr: str | None = None,
+    extensionStr: Optional[str] = None,
     critical: int = 0,
-    extype: str | None = None,
-    exvalue: str | None = None
+    extype: Optional[str] = None,
+    exvalue: Optional[str] = None
   ) -> None:
     self.critical = critical
     self.extype = extype
@@ -153,7 +149,7 @@ class LDAPUrlExtensions(LDAPUrlExtensionsBase):
     """
     __slots__ = ('_data', )
 
-    def __init__(self, default: Dict[str, LDAPUrlExtension] | None = None) -> None:
+    def __init__(self, default: Optional[Dict[str, LDAPUrlExtension]] = None) -> None:
         self._data: Dict[str, LDAPUrlExtension] = {}
         if default is not None:
             self.update(default)
@@ -245,16 +241,16 @@ class LDAPUrl:
 
   def __init__(
     self,
-    ldapUrl: str | None = None,
+    ldapUrl: Optional[str] = None,
     urlscheme: str = 'ldap',
     hostport: str = '',
     dn: str = '',
-    attrs: List[str] | None = None,
-    scope: int | None = None,
-    filterstr: str | None = None,
-    extensions: LDAPUrlExtensions | None = None,
-    who: str | None = None,
-    cred: str | None = None
+    attrs: Optional[List[str]] = None,
+    scope: Optional[int] = None,
+    filterstr: Optional[str] = None,
+    extensions: Optional[LDAPUrlExtensions] = None,
+    who: Optional[str] = None,
+    cred: Optional[str] = None
   ) -> None:
 
     self.urlscheme=urlscheme.lower()
@@ -263,7 +259,7 @@ class LDAPUrl:
     self.attrs=attrs
     self.scope=scope
     self.filterstr=filterstr
-    self.extensions: LDAPUrlExtensions | None = (extensions or LDAPUrlExtensions({}))
+    self.extensions: Optional[LDAPUrlExtensions] = (extensions or LDAPUrlExtensions({}))
 
     if ldapUrl is not None:
       self._parse(ldapUrl)
@@ -405,8 +401,8 @@ class LDAPUrl:
   def htmlHREF(
     self,
     urlPrefix: str = '',
-    hrefText: str | None = None,
-    hrefTarget: str | None = None
+    hrefText: Optional[str] = None,
+    hrefTarget: Optional[str] = None
   ) -> str:
     """
     Returns a string with HTML link for this LDAP URL.
@@ -448,7 +444,7 @@ class LDAPUrl:
       self.__dict__
     )
 
-  def __getattr__(self, name: str) -> str | None:
+  def __getattr__(self, name: str) -> Optional[str]:
     if name not in self.attr2extype:
       raise AttributeError('{} has no attribute {}'.format(
         self.__class__.__name__,name

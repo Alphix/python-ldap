@@ -1,8 +1,6 @@
 """
 Helper class for using logging as trace file object
 """
-from __future__ import annotations
-
 import logging
 
 class logging_file_class:

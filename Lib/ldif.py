@@ -17,8 +17,6 @@ __all__ = [
   'LDIFCopy',
 ]
 
-from __future__ import annotations
-
 import re
 from base64 import b64encode, b64decode
 from io import StringIO
@@ -27,8 +25,14 @@ import warnings
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-from ldap_types import *
-from typing import BinaryIO, Dict, List, TextIO, Tuple, cast
+from ldap.types import (
+    LDAPEntryDict,
+    LDAPModList,
+    LDAPControls,
+    LDAPModListModifyEntry,
+    LDAPModListAddEntry,
+)
+from typing import BinaryIO, Dict, List, TextIO, Tuple, cast, Optional, Union
 
 attrtype_pattern = r'[\w;.-]+(;[\w_-]+)*'
 attrvalue_pattern = r'(([^,]|\\,)+|".*?")'
@@ -89,7 +93,7 @@ class LDIFWriter:
   def __init__(
     self,
     output_file: TextIO,
-    base64_attrs: List[str] | None = [],
+    base64_attrs: Optional[List[str]] = [],
     cols: int = 76,
     line_sep: str = '\n'
   ) -> None:
@@ -195,7 +199,7 @@ class LDIFWriter:
       if mod_len==3:
         self._output_file.write('-'+self._last_line_sep)
 
-  def unparse(self, dn: str, record: LDAPEntryDict | LDAPModList) -> None:
+  def unparse(self, dn: str, record: Union[LDAPEntryDict, LDAPModList]) -> None:
     """
     dn
           string-representation of distinguished name
@@ -220,7 +224,7 @@ class LDIFWriter:
 
 def CreateLDIF(
     dn: str,
-    record: LDAPEntryDict | LDAPModList,
+    record: Union[LDAPEntryDict, LDAPModList],
     base64_attrs: List[str],
     cols: int = 76,
   ) -> str:
@@ -266,10 +270,10 @@ class LDIFParser:
 
   def __init__(
     self,
-    input_file: TextIO | BinaryIO,
-    ignored_attr_types: List[str] | None = [],
+    input_file: Union[TextIO, BinaryIO],
+    ignored_attr_types: Optional[List[str]] = [],
     max_entries: int = 0,
-    process_url_schemes: List[str] | None = [],
+    process_url_schemes: Optional[List[str]] = [],
     line_sep: str = '\n',
   ) -> None:
     """
@@ -290,8 +294,8 @@ class LDIFParser:
     """
     # Detect whether the file is open in text or bytes mode.
     if isinstance(input_file.read(0), bytes):
-      self._binary_input_file: BinaryIO | None = cast(BinaryIO, input_file)
-      self._text_input_file: TextIO | None = None
+      self._binary_input_file: Optional[BinaryIO] = cast(BinaryIO, input_file)
+      self._text_input_file: Optional[TextIO] = None
     else:
       self._binary_input_file = None
       self._text_input_file = cast(TextIO, input_file)
@@ -300,7 +304,7 @@ class LDIFParser:
     self._process_url_schemes = list_dict([s.lower() for s in (process_url_schemes or [])])
     self._ignored_attr_types = list_dict([a.lower() for a in (ignored_attr_types or [])])
     self._last_line_sep = line_sep
-    self.version: int | None = None
+    self.version: Optional[int] = None
     # Initialize counters
     self.line_counter = 0
     self.byte_counter = 0
@@ -314,14 +318,14 @@ class LDIFParser:
     except EOFError:
       self._last_line = ''
 
-  def handle(self, dn: str, entry: LDAPEntryDict) -> str | None:
+  def handle(self, dn: str, entry: LDAPEntryDict) -> Optional[str]:
     """
     Process a single content LDIF record. This method should be
     implemented by applications using LDIFParser.
     """
     pass
 
-  def _readline(self) -> str | None:
+  def _readline(self) -> Optional[str]:
     if self._text_input_file is not None:
       s = self._text_input_file.readline()
     elif self._binary_input_file is not None:
@@ -359,7 +363,7 @@ class LDIFParser:
     self._last_line = next_line
     return ''.join(unfolded_lines)
 
-  def _next_key_and_value(self) -> Tuple[str | None, bytes | None]:
+  def _next_key_and_value(self) -> Tuple[Optional[str], Optional[bytes]]:
     """
     Parse a single attribute type and value pair from one or
     more lines of LDIF data
@@ -406,7 +410,7 @@ class LDIFParser:
       attr_value = unfolded_line[colon_pos+1:].encode('utf-8')
     return attr_type,attr_value
 
-  def _consume_empty_lines(self) -> Tuple[str | None, bytes | None]:
+  def _consume_empty_lines(self) -> Tuple[Optional[str], Optional[bytes]]:
     """
     Consume empty lines until first non-empty line.
     Must only be used between full records!
@@ -493,7 +497,7 @@ class LDIFParser:
     self,
     dn: str,
     modops: LDAPModList,
-    controls: LDAPControls | None = None,
+    controls: Optional[LDAPControls] = None,
   ) -> None:
     """
     Process a single LDIF record representing a single modify operation.
@@ -629,16 +633,16 @@ class LDIFRecordList(LDIFParser):
 
   def __init__(
     self,
-    input_file: TextIO | BinaryIO,
-    ignored_attr_types: List[str] | None = [],
+    input_file: Union[TextIO, BinaryIO],
+    ignored_attr_types: Optional[List[str]] = [],
     max_entries: int = 0,
-    process_url_schemes: List[str] | None = [],
+    process_url_schemes: Optional[List[str]] = [],
   ) -> None:
     LDIFParser.__init__(self,input_file,ignored_attr_types,max_entries,process_url_schemes)
 
     #: List storing parsed records.
     self.all_records: List[Tuple[str, LDAPEntryDict]] = []
-    self.all_modify_changes: List[Tuple[str, LDAPModList, LDAPControls | None]] = []
+    self.all_modify_changes: List[Tuple[str, LDAPModList, Optional[LDAPControls]]] = []
 
   def handle(self, dn: str, entry: LDAPEntryDict) -> None:
     """
@@ -650,7 +654,7 @@ class LDIFRecordList(LDIFParser):
     self,
     dn: str,
     modops: LDAPModList,
-    controls: LDAPControls | None = None,
+    controls: Optional[LDAPControls] = None,
   ) -> None:
     """
     Process a single LDIF record representing a single modify operation.
@@ -668,11 +672,11 @@ class LDIFCopy(LDIFParser):
 
   def __init__(
     self,
-    input_file: TextIO | BinaryIO,
+    input_file: Union[TextIO, BinaryIO],
     output_file: TextIO,
-    ignored_attr_types: List[str] | None = [],
+    ignored_attr_types: Optional[List[str]] = [],
     max_entries: int = 0,
-    process_url_schemes: List[str] | None = [],
+    process_url_schemes: Optional[List[str]] = [],
     base64_attrs: List[str] = [],
     cols: int = 76,
     line_sep: str = '\n'
@@ -691,8 +695,8 @@ class LDIFCopy(LDIFParser):
 
 
 def ParseLDIF(
-    f: TextIO | BinaryIO,
-    ignore_attrs: List[str] | None = [],
+    f: Union[TextIO, BinaryIO],
+    ignore_attrs: Optional[List[str]] = [],
     maxentries: int = 0
   ) -> List[Tuple[str, LDAPEntryDict]]:
   """
