@@ -157,6 +157,7 @@ setup(
   install_requires=[
     'pyasn1 >= 0.3.7',
     'pyasn1_modules >= 0.1.5',
+    'typing_extensions',
   ],
   zip_safe=False,
   python_requires='>=3.6',
