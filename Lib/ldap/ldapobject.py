@@ -951,7 +951,7 @@ class SimpleLDAPObject:
       timeout = self.timeout
 
     ldap_result = None
-    with self._lock(self._l.results, msgid,all,timeout,add_ctrls,add_intermediates) as lock:
+    with self._lock(self._l.results, msgid, all, timeout, add_ctrls, add_intermediates) as lock:
       ldap_result = self._l.results(msgid, all, timeout, add_ctrls, add_intermediates)
       lock.result = ldap_result
 
