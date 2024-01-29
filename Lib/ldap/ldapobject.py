@@ -935,13 +935,24 @@ class SimpleLDAPObject:
     add_extop: int = 0, # obsolete, but kept for backward compatibility
     resp_ctrl_classes: Optional[Dict[str, Type[ResponseControl]]] = None,
   ) -> Union[Tuple[int, Union[Sequence[LDAPResult], Sequence[LDAPResultDecoded]], int, List[ResponseControl], Optional[str], Optional[bytes]], Tuple[None, None, None, None, None, None]]:
+    return self.results(msgid, all, timeout, add_ctrls, add_intermediates, resp_ctrl_classes)
+
+  def results(
+    self,
+    msgid: int = ldap.RES_ANY,
+    all: int = 0,
+    timeout: Optional[int] = None,
+    add_ctrls: int = 0,
+    add_intermediates: int = 0,
+    resp_ctrl_classes: Optional[Dict[str, Type[ResponseControl]]] = None,
+  ) -> Union[Tuple[int, Union[Sequence[LDAPResult], Sequence[LDAPResultDecoded]], int, List[ResponseControl], Optional[str], Optional[bytes]], Tuple[None, None, None, None, None, None]]:
 
     if timeout is None:
       timeout = self.timeout
 
     ldap_result = None
-    with self._lock(self._l.result4, msgid,all,timeout,add_ctrls,add_intermediates) as lock:
-      ldap_result = self._l.result4(msgid, all, timeout, add_ctrls, add_intermediates)
+    with self._lock(self._l.results, msgid,all,timeout,add_ctrls,add_intermediates) as lock:
+      ldap_result = self._l.results(msgid, all, timeout, add_ctrls, add_intermediates)
       lock.result = ldap_result
 
     if ldap_result is None:

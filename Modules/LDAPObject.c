@@ -1032,10 +1032,10 @@ l_ldap_rename(LDAPObject *self, PyObject *args)
     return PyLong_FromLong(msgid);
 }
 
-/* ldap_result4 */
+/* ldap_results */
 
 static PyObject *
-l_ldap_result4(LDAPObject *self, PyObject *args)
+l_ldap_results(LDAPObject *self, PyObject *args)
 {
     int req_msgid = LDAP_RES_ANY;
     int all = 1;
@@ -1047,7 +1047,7 @@ l_ldap_result4(LDAPObject *self, PyObject *args)
     LDAPMessage *msgs;
     int rc;
 
-    if (!PyArg_ParseTuple(args, "|iidii:result4", &req_msgid, &all, &timeout,
+    if (!PyArg_ParseTuple(args, "|iidii:results", &req_msgid, &all, &timeout,
                           &add_ctrls, &add_intermediates))
         return NULL;
 
@@ -1393,7 +1393,7 @@ static PyMethodDef methods[] = {
     {"delete_ext", (PyCFunction)l_ldap_delete_ext, METH_VARARGS},
     {"modify_ext", (PyCFunction)l_ldap_modify_ext, METH_VARARGS},
     {"rename", (PyCFunction)l_ldap_rename, METH_VARARGS},
-    {"result4", (PyCFunction)l_ldap_result4, METH_VARARGS},
+    {"results", (PyCFunction)l_ldap_results, METH_VARARGS},
     {"search_ext", (PyCFunction)l_ldap_search_ext, METH_VARARGS},
 #ifdef HAVE_TLS
     {"start_tls_s", (PyCFunction)l_ldap_start_tls_s, METH_VARARGS},

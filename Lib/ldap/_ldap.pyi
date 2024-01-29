@@ -260,7 +260,7 @@ class LDAP:
         serverctrls: Optional[List[LDAPControlTuple]],
         clientctrls: Optional[List[LDAPControlTuple]],
     ) -> int: ...
-    def result4(
+    def results(
         self,
         msgid: int,
         all: int,
