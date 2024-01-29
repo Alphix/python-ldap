@@ -5,6 +5,7 @@
 
 #include <math.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #ifdef HAVE_SASL
 #include <sasl/sasl.h>
@@ -1040,19 +1041,24 @@ l_ldap_results(LDAPObject *self, PyObject *args)
     int req_msgid = LDAP_RES_ANY;
     int all = 1;
     double timeout = -1.0;
-    int add_ctrls = 0;
-    int add_intermediates = 0;
+    int add_ctrls_int = 0;
+    bool add_ctrls;
+    int add_intermediates_int = 0;
+    bool add_intermediates;
     struct timeval tv;
     struct timeval *tvp = &tv;
     LDAPMessage *msgs;
     int rc;
 
-    if (!PyArg_ParseTuple(args, "|iidii:results", &req_msgid, &all, &timeout,
-                          &add_ctrls, &add_intermediates))
+    if (!PyArg_ParseTuple(args, "|iidpp:results", &req_msgid, &all, &timeout,
+                          &add_ctrls_int, &add_intermediates_int))
         return NULL;
 
     if (not_valid(self))
         return NULL;
+
+    add_ctrls = add_ctrls_int ? true : false;
+    add_intermediates = add_intermediates_int ? true : false;
 
     if (timeout >= 0)
         set_timeval_from_double(tvp, timeout);

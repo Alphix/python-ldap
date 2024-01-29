@@ -935,15 +935,15 @@ class SimpleLDAPObject:
     add_extop: int = 0, # obsolete, but kept for backward compatibility
     resp_ctrl_classes: Optional[Dict[str, Type[ResponseControl]]] = None,
   ) -> Union[Tuple[int, Union[Sequence[LDAPResult], Sequence[LDAPResultDecoded]], int, List[ResponseControl], Optional[str], Optional[bytes]], Tuple[None, None, None, None, None, None]]:
-    return self.results(msgid, all, timeout, add_ctrls, add_intermediates, resp_ctrl_classes)
+    return self.results(msgid, all, timeout, bool(add_ctrls), bool(add_intermediates), resp_ctrl_classes)
 
   def results(
     self,
     msgid: int = ldap.RES_ANY,
     all: int = 0,
     timeout: Optional[int] = None,
-    add_ctrls: int = 0,
-    add_intermediates: int = 0,
+    add_ctrls: bool = False,
+    add_intermediates: bool = False,
     resp_ctrl_classes: Optional[Dict[str, Type[ResponseControl]]] = None,
   ) -> Union[Tuple[int, Union[Sequence[LDAPResult], Sequence[LDAPResultDecoded]], int, List[ResponseControl], Optional[str], Optional[bytes]], Tuple[None, None, None, None, None, None]]:
 

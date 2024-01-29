@@ -265,8 +265,8 @@ class LDAP:
         msgid: int,
         all: int,
         timeout: Union[int, float],
-        add_ctrls: int,
-        add_intermediates: int,
+        add_ctrls: bool,
+        add_intermediates: bool,
     ) -> Optional[Tuple[int, List[LDAPResult], int, List[LDAPControlTuple], Optional[str], Optional[bytes]]]: ...
     def sasl_bind_s(
         self,
