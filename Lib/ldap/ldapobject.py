@@ -959,6 +959,7 @@ class SimpleLDAPObject:
       return None, None, None, None, None, None
 
     resp_type, resp_data, resp_msgid, resp_ctrls, resp_name, resp_value = ldap_result
+    print(f"XXXXXX - {ldap_result=}")
     decoded_resp_ctrls = DecodeControlTuples(resp_ctrls, resp_ctrl_classes)
 
     if add_ctrls:

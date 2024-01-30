@@ -2,6 +2,39 @@
 
 #include "pythonldap.h"
 
+PyStructSequence_Field result_fields[] = {
+    {
+        .name = "oid",
+    },
+    {
+        .name = "criticality",
+    },
+    {
+        .name = "value",
+    },
+    {
+        .name = "banan",
+    },
+    {
+        .name = "ropp",
+    },
+    {
+        .name = "nopp",
+    },
+    {
+        .name = NULL,
+    }
+};
+
+PyStructSequence_Desc result_tuple_desc = {
+    .name = "_ldap._Result",
+    .doc = "LDAP Result returned from native code",
+    .fields = result_fields,
+    .n_in_sequence = 6,
+};
+
+PyTypeObject result_tuple_type;
+
 static int
 process_entry_attribute(LDAP *ld, LDAPMessage *entry, PyObject *attrdict,
                         const char *attr, BerElement *ber)
@@ -438,9 +471,20 @@ LDAPmessages_to_python(LDAPObject *lo, LDAPMessage *msg, bool add_ctrls,
         goto out;
 
     /* s handles NULL, but O does not */
-    retval = Py_BuildValue("(iOiOsO)", res_type, pmsg, res_msgid,
+    retval = PyStructSequence_New(&result_tuple_type);
+    PyStructSequence_SET_ITEM(retval, 0, PyLong_FromLong(res_type));
+    PyStructSequence_SET_ITEM(retval, 1, pmsg);
+    PyStructSequence_SET_ITEM(retval, 2, PyLong_FromLong(res_msgid));
+    PyStructSequence_SET_ITEM(retval, 3, pyctrls ? pyctrls : Py_None);
+    PyStructSequence_SET_ITEM(retval, 4, retoid ? PyUnicode_FromString(retoid) : Py_None);
+    PyStructSequence_SET_ITEM(retval, 5, valuestr ? valuestr : Py_None);
+    Py_INCREF(Py_None);
+    Py_INCREF(Py_None);
+    Py_INCREF(Py_None);
+    return retval;
+    retval = Py_BuildValue("(iOiOsOO)", res_type, pmsg, res_msgid,
                            pyctrls, retoid,
-                           valuestr ? valuestr : Py_None);
+                           valuestr ? valuestr : Py_None, retval);
     Py_DECREF(pmsg);
 
 out:

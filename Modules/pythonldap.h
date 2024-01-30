@@ -118,6 +118,8 @@ PYLDAP_FUNC(LDAPObject *) newLDAPObject(LDAP *);
     }
 
 /* *** messages *** */
+PYLDAP_DATA(PyStructSequence_Desc) result_tuple_desc;
+PYLDAP_DATA(PyTypeObject) result_tuple_type;
 PYLDAP_FUNC(PyObject *)
 LDAPmessages_to_python(LDAPObject *lo, LDAPMessage *m, bool add_ctrls,
 		       bool add_intermediates);

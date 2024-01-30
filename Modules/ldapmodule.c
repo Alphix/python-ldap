@@ -27,6 +27,37 @@ static struct PyModuleDef ldap_moduledef = {
     methods,        /* m_methods */
 };
 
+int
+LDAPinit_types(PyObject *d)
+{
+    /* PyStructSequence types */
+    static struct sequence_types {
+        PyStructSequence_Desc *desc;
+        PyTypeObject *where;
+    } sequence_types[] = {
+        {
+            .desc = &result_tuple_desc,
+            .where = &result_tuple_type,
+        },
+        {
+            .desc = NULL,
+	    .where = NULL,
+        }
+    };
+    static struct sequence_types *type;
+
+    for (type = sequence_types; type->desc; type++) {
+        /* We'd like to use PyStructSequence_NewType from Stable ABI but can't
+         * until Python 3.8 because of https://bugs.python.org/issue34784 */
+        if (PyStructSequence_InitType2(type->where, type->desc))
+            return -1;
+        if (PyDict_SetItemString(d, type->desc->name, (PyObject *)type->where))
+            return -1;
+    }
+
+    return 0;
+}
+
 /* module initialisation */
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 9
 static int
@@ -76,6 +107,10 @@ PyInit__ldap(void)
 
     LDAPinit_functions(d);
     LDAPinit_control(d);
+
+    if (LDAPinit_types(d) < 0) {
+        return NULL;
+    }
 
     /* Check for errors */
     if (PyErr_Occurred())
